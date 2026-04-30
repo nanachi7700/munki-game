@@ -2279,7 +2279,7 @@
           if (Math.random() < 0.18 + state.luck * 0.005) {
             const bonus = 8 + Math.floor(state.luck / 3);
             addCoins(bonus);
-            addLog('모험 중 보너스 코인을 발견했다. (+' + bonus + ' 코인)', 'event');
+            addLog('모험 중 보너스 코인을 발견했다. (+' + formatBigAmount(bonus) + ' 코인)', 'event');
             spawnParticles(els.stageEl, 16, '#f4c244');
           } else {
             addLog('문주성이 모험을 마쳤다.', 'success');
@@ -3799,6 +3799,67 @@
     function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
     function getExpToNext(level) { return Math.floor(60 + level * 20 + level * level * 3); }
 
+    const KOREAN_BIG_UNITS = ['', '만', '억', '조', '경', '해', '자', '양', '구', '간', '정', '재', '극', '항하사', '아승기', '나유타', '불가사의', '무량대수'];
+
+    function parseAmountLike(value) {
+      if (value === null || value === undefined || value === '') return 0;
+      if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+      const raw = String(value).trim().replace(/,/g, '');
+      if (!raw) return 0;
+      const direct = Number(raw);
+      if (Number.isFinite(direct)) return direct;
+      for (let i = KOREAN_BIG_UNITS.length - 1; i >= 1; i -= 1) {
+        const unit = KOREAN_BIG_UNITS[i];
+        if (raw.endsWith(unit)) {
+          const numeric = Number(raw.slice(0, -unit.length));
+          if (Number.isFinite(numeric)) return numeric * Math.pow(10000, i);
+        }
+      }
+      return 0;
+    }
+
+    function formatPlainNumber(value) {
+      const amount = parseAmountLike(value);
+      if (!Number.isFinite(amount)) return '0';
+      const rounded = Math.round(amount);
+      return rounded.toLocaleString('ko-KR');
+    }
+
+    function trimFixed(value, digits, keepTwo = false) {
+      const fixed = value.toFixed(digits);
+      return keepTwo ? fixed : fixed.replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1');
+    }
+
+    function formatBigAmount(value, options = {}) {
+      const amount = parseAmountLike(value);
+      if (!Number.isFinite(amount) || Number.isNaN(amount)) return '0';
+      if (amount === 0) return '0';
+      const sign = amount < 0 ? '-' : '';
+      const abs = Math.abs(amount);
+      if (abs < 10000) return sign + formatPlainNumber(abs);
+      const unitIndex = Math.floor(Math.log10(abs) / 4);
+      if (unitIndex >= KOREAN_BIG_UNITS.length) {
+        const exponent = Math.floor(Math.log10(abs));
+        const mantissa = abs / Math.pow(10, exponent);
+        return sign + mantissa.toFixed(2) + 'e' + exponent;
+      }
+      const unitValue = Math.pow(10000, unitIndex);
+      const scaled = abs / unitValue;
+      const isUnitStart = Math.abs(scaled - 1) < 1e-9;
+      let text;
+      if (scaled < 10) text = trimFixed(scaled, 2, isUnitStart || options.keepTwo);
+      else if (scaled < 100) text = trimFixed(scaled, 2, false);
+      else text = trimFixed(scaled, 0, false);
+      return sign + text + KOREAN_BIG_UNITS[unitIndex];
+    }
+
+    function formatPercent(value) {
+      const amount = parseAmountLike(value);
+      if (!Number.isFinite(amount)) return '0%';
+      const percent = Math.abs(amount) <= 1 ? amount * 100 : amount;
+      return trimFixed(percent, Math.abs(percent) < 10 ? 1 : 0, false) + '%';
+    }
+
     function getGameEventTotal() {
       return (state.skyrimEventCount || 0) +
         (state.lolEventCount || 0) +
@@ -3969,7 +4030,7 @@
         message = '보석 +5. 뽑기에서 뽑기값을 이기는 장면은 귀하다.';
       } else if (roll < 27.5) {
         addCoins(5000);
-        message = '코인 +5000. 갑자기 지갑이 서버 이벤트를 받았다.';
+        message = '코인 +' + formatBigAmount(5000) + '. 갑자기 지갑이 서버 이벤트를 받았다.';
       } else if (roll < 42.5) {
         changeStat(randomStat, 1200);
         message = formatStatName(randomStat) + ' +1200. 스탯창이 잠깐 다른 게임이 됐다.';
@@ -3989,7 +4050,7 @@
         state.coins = Math.max(0, state.coins - 1000);
         state.gems += 1;
         collectClip('clip_why_not', { label: '전설 랜덤박스' });
-        message = '코인 -1000, 보석 +1. 손해인지 예능인지 단톡방 투표가 필요하다.';
+        message = '코인 -' + formatBigAmount(1000) + ', 보석 +1. 손해인지 예능인지 단톡방 투표가 필요하다.';
       }
       addLog('🎁 전설 랜덤박스 결과: ' + message, 'event');
       showToast('🎁 랜덤박스: ' + message, 'gold');
@@ -4435,7 +4496,7 @@
     }
 
     function formatCost(cost) {
-      return Object.entries(cost).map(([key, value]) => formatStatName(key) + ' ' + value).join(' + ');
+      return Object.entries(cost).map(([key, value]) => formatStatName(key) + ' ' + (key === 'coins' ? formatBigAmount(value) : value)).join(' + ');
     }
 
     function formatFriendCost(friend) {
@@ -4786,7 +4847,7 @@
     function formatShopPrice(item) {
       const price = getShopItemPrice(item);
       if (price === null) return '최대';
-      return (getShopItemCurrency(item) === 'gems' ? '💎 ' : '🪙 ') + price;
+      return getShopItemCurrency(item) === 'gems' ? '💎 ' + formatPlainNumber(price) : '🪙 ' + formatBigAmount(price);
     }
 
     function getShopItemOwned(item) {
@@ -5172,14 +5233,15 @@
 
       const x = event.clientX || (event.touches && event.touches[0] && event.touches[0].clientX) || window.innerWidth / 2;
       const y = event.clientY || (event.touches && event.touches[0] && event.touches[0].clientY) || window.innerHeight / 2;
-      addFloatingText((expGain > 0 ? '+' + expGain + ' XP / ' : '') + '+' + coinGain + ' 🪙', x, y, isCrit);
+      const coinGainText = formatBigAmount(coinGain);
+      addFloatingText((expGain > 0 ? '+' + expGain + ' XP / ' : '') + '+' + coinGainText + ' 🪙', x, y, isCrit);
       spawnParticles(els.stageEl, isCrit ? 14 : 5, isCrit ? '#ff7ab8' : '#f4c244');
 
       updateComboBadge();
       if (state.clicks === 1 || state.clicks % 50 === 0) {
         addLog('문주성을 ' + state.clicks + '번 클릭했다. 성장 장부에 손맛이 쌓이는 중이다.', 'success');
       }
-      if (isCrit) addLog('💥 치명타! ' + (expGain > 0 ? expGain + ' XP / ' : '') + coinGain + ' 코인 폭발', 'event');
+      if (isCrit) addLog('💥 치명타! ' + (expGain > 0 ? expGain + ' XP / ' : '') + coinGainText + ' 코인 폭발', 'event');
       afterStateChange();
     }
 
@@ -6047,7 +6109,7 @@
         if (state.autoCoinTick >= 5) {
           addCoins(autoCoin);
           const facilityAutoCoin = getFacilityBonus('autoCoin');
-          if (facilityAutoCoin > 0) showIdleFacilityFloat('알바 대행 +' + facilityAutoCoin + '코인');
+          if (facilityAutoCoin > 0) showIdleFacilityFloat('알바 대행 +' + formatBigAmount(facilityAutoCoin) + '코인');
           state.autoCoinTick = 0;
         }
       }
@@ -6091,8 +6153,9 @@
       els.expText.textContent = '경험치 ' + state.exp + ' / ' + state.expToNext;
       const expBar = document.getElementById('expBar');
       if (expBar) expBar.setAttribute('aria-valuenow', String(Math.round(expPct)));
-      els.coinPill.textContent = '🪙 ' + state.coins;
-      els.coinPill.setAttribute('aria-label', '코인 ' + state.coins);
+      const coinText = formatBigAmount(state.coins);
+      els.coinPill.textContent = '🪙 ' + coinText;
+      els.coinPill.setAttribute('aria-label', '코인 ' + coinText);
       els.gemPill.textContent = '💎 ' + state.gems;
       els.gemPill.setAttribute('aria-label', '보석 ' + state.gems);
       els.famePill.textContent = '📣 명성 ' + state.fame;
@@ -6332,7 +6395,7 @@
       const stats = [
         { key: 'level', label: '🌟 레벨', text: state.level, value: state.level, max: prestigeRequiredLevel, cls: 'fame' },
         { key: 'exp', label: '✨ 다음 레벨', text: state.exp + ' / ' + state.expToNext, value: state.exp, max: state.expToNext, cls: 'exp' },
-        { key: 'coins', label: '🪙 코인', text: state.coins, value: clamp(state.coins, 0, 500), max: 500, cls: '' },
+        { key: 'coins', label: '🪙 코인', text: formatBigAmount(state.coins), value: clamp(state.coins, 0, 500), max: 500, cls: '' },
         { key: 'gems', label: '💎 보석', text: state.gems, value: clamp(state.gems, 0, 50), max: 50, cls: 'fame' },
         { key: 'energy', label: '💪 체력', text: state.energy, value: state.energy, max: 100, cls: 'energy' },
         { key: 'mood', label: '🙂 기분', text: state.mood, value: state.mood, max: 100, cls: 'mood' },
@@ -6358,7 +6421,7 @@
     }
 
     function formatNumber(value) {
-      return Number(value || 0).toLocaleString('ko-KR');
+      return formatPlainNumber(value);
     }
 
     function ensureLeaderboardState() {
@@ -6531,8 +6594,8 @@
       const rows = [
         ['XP/초', '+' + xpPerSecond],
         ['XP/분', '+' + (xpPerSecond * 60)],
-        ['코인/5초', '+' + coinsPerFiveSeconds],
-        ['코인/분', '+' + (coinsPerFiveSeconds * 12)],
+        ['코인/5초', '+' + formatBigAmount(coinsPerFiveSeconds)],
+        ['코인/분', '+' + formatBigAmount(coinsPerFiveSeconds * 12)],
         ['다음 자동 코인', getNextAutoCoinCountdown()],
         ['활성 버프', getActiveBuffSummary()],
         ['클릭 기본값', '+' + clickBase],
@@ -6550,8 +6613,8 @@
         ['친구 Lv.5', getFriendLevelFiveCount() + '/' + friends.length],
         ['오늘 레이드 성공', getCurrentWeekRaidClearCount() + '/' + raids.length],
         ['SP', state.sp + ' / 누적 ' + state.totalSp],
-        ['보석', state.gems],
-        ['명성', state.fame]
+        ['보석', formatPlainNumber(state.gems)],
+        ['명성', formatPlainNumber(state.fame)]
       ];
       els.growthLedger.innerHTML = rows.map(([label, value]) => {
         return '<div class="ledger-item"><span class="ledger-label">' + escapeHtml(label) + '</span><span class="ledger-value">' + escapeHtml(value) + '</span></div>';
@@ -6642,8 +6705,9 @@
         const projected = getProjectedValue(item.key, delta, item.max);
         const shown = delta ? projected : base;
         const width = clamp((shown / item.max) * 100, 0, 100);
-        const valueText = delta ? base + ' → ' + projected : shown;
-        const deltaText = delta ? '<span class="impact-delta ' + (delta > 0 ? 'up' : 'down') + '">' + (delta > 0 ? '+' : '') + delta + '</span>' : '';
+        const formatImpactValue = (value) => item.key === 'coins' ? formatBigAmount(value) : formatPlainNumber(value);
+        const valueText = delta ? formatImpactValue(base) + ' → ' + formatImpactValue(projected) : formatImpactValue(shown);
+        const deltaText = delta ? '<span class="impact-delta ' + (delta > 0 ? 'up' : 'down') + '">' + (delta > 0 ? '+' : '-') + formatImpactValue(Math.abs(delta)) + '</span>' : '';
         const fillClass = (delta < 0 ? 'down ' : '') + (item.cls || '');
         return '<div class="impact-stat">' +
           '<div class="impact-label"><span>' + item.label + '</span><span class="impact-value">' + valueText + deltaText + '</span></div>' +
@@ -6727,11 +6791,13 @@
         const done = !!state.completedQuests[q.id];
         const progress = getQuestProgress(q);
         const ready = progress >= q.target;
-        const label = done ? '완료' : ready ? '받기' : progress + '/' + q.target;
+        const progressText = q.key === 'coins' ? formatBigAmount(progress) : formatPlainNumber(progress);
+        const targetText = q.key === 'coins' ? formatBigAmount(q.target) : formatPlainNumber(q.target);
+        const label = done ? '완료' : ready ? '받기' : progressText + '/' + targetText;
         const w = clamp((progress / q.target) * 100, 0, 100);
         return '<div class="row-card ' + (done ? 'done' : '') + '">' +
           '<div><div class="meta"><span class="icon-circle">' + q.icon + '</span>' + q.name + '</div>' +
-          '<div class="desc">' + q.desc + ' · ' + progress + '/' + q.target + '</div>' +
+          '<div class="desc">' + q.desc + ' · ' + progressText + '/' + targetText + '</div>' +
           '<div class="progress-mini"><span style="width:' + w + '%"></span></div></div>' +
           '<button class="small-btn ' + (ready && !done ? 'gold' : '') + '" type="button" data-quest="' + q.id + '"' + (ready && !done ? '' : ' disabled') + '>' + label + '</button>' +
           '</div>';
@@ -6814,7 +6880,7 @@
       const parts = [];
       if (reward.gems) parts.push('보석 +' + reward.gems);
       if (reward.exp) parts.push('경험 +' + reward.exp);
-      if (reward.coins) parts.push('코인 +' + reward.coins);
+      if (reward.coins) parts.push('코인 +' + formatBigAmount(reward.coins));
       if (reward.title) parts.push('칭호 [' + reward.title + ']');
       if (reward.clipId) {
         const clip = getClipMeta(reward.clipId);
