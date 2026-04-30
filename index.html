@@ -2160,8 +2160,13 @@
     const BALANCE_CHOICE_COOLDOWN_MS = 60000;
     const BALANCE_CHOICE_ACTION_INTERVAL = 8;
     const BALANCE_CHOICE_PITY_ACTIONS = 45;
-    const BASE_REST_COOLDOWN_MS = 8000;
+    const BASE_REST_COOLDOWN_MS = 20000;
     const MIN_REST_COOLDOWN_MS = 4000;
+    const DATE_COOLDOWN_MS = 20000;
+    const TITLE_COLLECTION_BONUS_PER_TITLE = 0.002;
+    const TITLE_COLLECTION_BONUS_MAX = 0.05;
+    const TITLE_PERCENT_EFFECT_MAX = 0.002;
+    const TITLE_POINT_EFFECT_MAX = 0.2;
     const COMBO_TIMEOUT_MS = 4500;
     const PRESTIGE_REQUIRED_LEVEL = 50;
     const CLICK_EXP_INTERVAL_MS = 350;
@@ -2219,7 +2224,7 @@
           state.workoutCount += 1;
           addLog('문주성이 운동했다. 근육과 기분이 같이 올랐다.', 'success');
         } },
-      { id: 'rest', name: '휴식하기', icon: '😴', desc: '체력 +45 · 기분 +20 · 경험 +0~3 · 쿨타임 8초', tip: '체력과 기분을 크게 회복합니다. 특성/시설로 쿨타임이 줄어듭니다.',
+      { id: 'rest', name: '휴식하기', icon: '😴', desc: '체력 +45 · 기분 +20 · 경험 +0~3 · 쿨타임 20초', tip: '체력과 기분을 크게 회복합니다. 특성/시설로 쿨타임이 줄어듭니다.',
         canRun: () => getRestCooldownRemaining() <= 0,
         fail: '휴식은 아직 쿨타임입니다.',
         run: () => {
@@ -2241,13 +2246,13 @@
           state.workCount += 1;
           addLog('문주성이 알바를 했다. 코인이 들어왔다.', 'success');
         } },
-      { id: 'talk', name: '대화하기', icon: '💬', desc: '기분 -4 · 매력 +5 · 명성 +3 · 경험 +20', tip: '사회성을 기르는 행동입니다.',
-        canRun: () => state.mood >= 4, fail: '기분이 부족해서 대화할 여유가 없습니다.',
+      { id: 'talk', name: '대화하기', icon: '💬', desc: '기분 -5 · 매력 +4 · 명성 +2 · 경험 +14', tip: '사회성을 기르는 행동입니다.',
+        canRun: () => state.mood >= 5, fail: '기분이 부족해서 대화할 여유가 없습니다.',
         run: () => {
-          state.mood -= 4;
-          changeStat('charm', mult(5, 'talk'));
-          changeStat('fame', mult(3, 'talk'));
-          gainActionExp(20);
+          state.mood -= 5;
+          changeStat('charm', mult(4, 'talk'));
+          changeStat('fame', mult(2, 'fame'));
+          gainActionExp(14);
           state.talkCount += 1;
           addLog('문주성이 대화에 성공했다. 사회성이 올랐다.', 'success');
         } },
@@ -2292,29 +2297,35 @@
           else addLog('문주성이 게임을 즐겼다. 기분이 올랐다.', 'success');
           if (Math.random() < 0.35) triggerGameParodyEvent();
         } },
-      { id: 'date', name: '데이트하기', icon: '💖', desc: '코인 -14 · 매력 +8 · 기분 +10 · 명성 +6 · 경험 +30', tip: '매력과 명성을 올리는 행동입니다.',
-        canRun: () => state.coins >= 14 && state.charm >= 5, fail: '데이트에는 코인 14, 매력 5가 필요합니다.',
+      { id: 'date', name: '데이트하기', icon: '💖', desc: '코인 -32 · 체력 -10 · 매력 +4 · 기분 +6 · 명성 +4 · 경험 +16 · 쿨타임 20초', tip: '매력과 명성을 올리는 프리미엄 사회 행동입니다.',
+        canRun: () => state.coins >= 32 && state.charm >= 20 && state.energy >= 10 && state.mood >= 15 && getDateCooldownRemaining() <= 0,
+        fail: '데이트에는 코인 32, 매력 20, 체력 10, 기분 15가 필요하며 쿨타임이 있습니다.',
         run: () => {
-          state.coins -= 14;
-          changeStat('charm', mult(8, 'charm'));
-          changeStat('mood', mult(10, 'mood'));
-          changeStat('fame', mult(6, 'fame'));
-          gainActionExp(30);
+          state.coins -= 32;
+          state.energy -= 10;
+          const streak = state.dateStreak || 0;
+          const factor = getDateRewardFactor(streak);
+          changeStat('charm', Math.round(mult(4, 'charm') * factor));
+          changeStat('mood', Math.round(6 * factor));
+          changeStat('fame', Math.round(mult(4, 'fame') * factor));
+          gainActionExp(Math.round(16 * factor));
           state.dateCount += 1;
-          addLog('데이트가 나쁘지 않았다. 매력과 명성이 올랐다.', 'event');
+          state.dateStreak = streak + 1;
+          state.lastDateAt = Date.now();
+          addLog('데이트를 했다. 좋은 시간이었지만 무한 반복할 정도로 쉽지는 않았다.', 'event');
         } }
     ];
 
     actions.push(
-      { id: 'project', name: '프로젝트', icon: '🛠️', desc: '체력 -14 · 집중 -3 · 지식 +4 · 명성 +5 · 코인 +12 · 경험 +38', tip: '큰 경험치를 주는 고효율 행동입니다.',
-        canRun: () => state.energy >= 14 && state.focus >= 3, fail: '프로젝트에는 체력 14, 집중 3이 필요합니다.',
+      { id: 'project', name: '프로젝트', icon: '🛠️', desc: '체력 -14 · 집중 -5 · 지식 +4 · 명성 +5 · 코인 +6 · 경험 +32', tip: '지식 기반의 큰 성장 행동입니다.',
+        canRun: () => state.energy >= 14 && state.focus >= 5 && state.knowledge >= 20, fail: '프로젝트에는 체력 14, 집중 5, 지식 20이 필요합니다.',
         run: () => {
           state.energy -= 14;
-          state.focus -= 3;
+          state.focus -= 5;
           changeStat('knowledge', mult(4, 'study'));
           changeStat('fame', mult(5, 'fame'));
-          addCoins(mult(12, 'coin'));
-          gainActionExp(38);
+          addCoins(mult(6, 'coin'));
+          gainActionExp(32);
           state.projectCount = (state.projectCount || 0) + 1;
           addLog('프로젝트를 진행했다. 경험치가 크게 올랐다.', 'success');
         } },
@@ -2341,24 +2352,29 @@
           addLog('문주성이 PC방에 갔다. 집중과 기분이 살아났다.', 'event');
           if (Math.random() < 0.6) triggerChaosEvent();
         } },
-      { id: 'roast_friend', name: '친구 놀리기', icon: '😈', desc: '기분 -6 · 매력 +4 · 명성 +5 · 경험 +16 · 놀림 이벤트 확정', tip: '기분을 써서 명성과 웃긴 이벤트를 얻습니다.',
-        canRun: () => state.mood >= 6, fail: '기분 6이 부족해서 친구를 놀릴 수 없습니다.',
+      { id: 'roast_friend', name: '친구 놀리기', icon: '😈', desc: '기분 -12 · 체력 -4 · 매력 +3 · 명성 +3 · 경험 +9 · 놀림 이벤트 60%', tip: '기분과 체력을 써서 명성과 웃긴 이벤트를 노립니다.',
+        canRun: () => state.mood >= 12 && state.energy >= 4, fail: '친구 놀리기에는 기분 12, 체력 4가 필요합니다.',
         run: () => {
-          state.mood -= 6;
-          changeStat('charm', mult(4, 'talk'));
-          changeStat('fame', mult(5, 'fame'));
-          gainActionExp(16);
+          state.mood -= 12;
+          state.energy -= 4;
+          changeStat('charm', mult(3, 'talk'));
+          changeStat('fame', mult(3, 'fame'));
+          gainActionExp(9, { levelBonus: false });
           state.roastActionCount = (state.roastActionCount || 0) + 1;
-          triggerRoastEvent();
+          if (Math.random() < 0.6) triggerRoastEvent();
+          else addLog('친구 놀리기를 시도했지만 오늘은 반응이 약했다.', 'event');
         } },
-      { id: 'penalty_roulette', name: '벌칙 룰렛', icon: '🎲', desc: '코인 -12 · 행운 +1 · 경험 +14 · 벌칙 이벤트 확정', tip: '코인을 쓰고 즉시 벌칙 사건을 발생시킵니다.',
-        canRun: () => state.coins >= 12, fail: '벌칙 룰렛에는 코인 12가 필요합니다.',
+      { id: 'penalty_roulette', name: '벌칙 룰렛', icon: '🎲', desc: '코인 -22 · 체력 -5 · 기분 -8 · 행운 +1 확률 30% · 경험 +6 · 벌칙 이벤트 70%', tip: '코인과 컨디션을 쓰고 벌칙 사건을 노립니다.',
+        canRun: () => state.coins >= 22 && state.energy >= 5 && state.mood >= 8, fail: '벌칙 룰렛에는 코인 22, 체력 5, 기분 8이 필요합니다.',
         run: () => {
-          state.coins = Math.max(0, state.coins - 12);
-          changeStat('luck', 1);
-          gainActionExp(14);
+          state.coins = Math.max(0, state.coins - 22);
+          state.energy -= 5;
+          state.mood -= 8;
+          if (Math.random() < 0.3) changeStat('luck', 1);
+          gainActionExp(6, { levelBonus: false });
           state.penaltyRouletteCount = (state.penaltyRouletteCount || 0) + 1;
-          triggerPenaltyEvent();
+          if (Math.random() < 0.7) triggerPenaltyEvent();
+          else addLog('벌칙 룰렛이 싱겁게 끝났다. 그래도 약간의 경험은 남았다.', 'event');
         } }
     );
 
@@ -2413,8 +2429,8 @@
         buy: () => { changeStat('focus', 15); changeStat('knowledge', 10); } },
       { id: 'mentor_call', name: '멘토 통화권', price: 260, priceGrowth: 1.25, icon: '📞', category: 'upgrade', shopGroup: 'automation', desc: '명성 +18, 매력 +8, 경험 +30', repeatable: true,
         buy: () => { changeStat('fame', 18); changeStat('charm', 8); gainExp(30); } },
-      { id: 'rest_room', name: '회복 라운지', price: 420, priceGrowth: 1.3, icon: '🛋️', category: 'legendary', shopGroup: 'consumables', desc: '체력과 기분을 즉시 100으로 회복', repeatable: true,
-        buy: () => { state.energy = 100; state.mood = 100; } }
+      { id: 'rest_room', name: '회복 라운지', price: 420, priceGrowth: 1.7, icon: '🛋️', category: 'legendary', shopGroup: 'consumables', desc: '체력 +60 · 기분 +60', repeatable: true, max: 5,
+        buy: () => { changeStat('energy', 60); changeStat('mood', 60); } }
     );
 
     const skills = [
@@ -3026,7 +3042,9 @@
       { id: 'rest_50', name: '????', icon: '??', desc: '?? 50?', check: () => state.restCount >= 50, reward: () => addCoins(50), title: '????' },
       { id: 'gaming_50', name: '?????', icon: '??', desc: '?? 50?', check: () => state.gamingCount >= 50, reward: () => addCoins(60), title: '?????' },
       { id: 'talk_30', name: '??', icon: '??', desc: '?? 30?', check: () => state.talkCount >= 30, reward: () => changeStat('fame', 20), title: '??' },
-      { id: 'date_5', name: '?? ??', icon: '??', desc: '??? 5?', check: () => state.dateCount >= 5, reward: () => { state.gems += 3; }, title: '?? ??' },
+      { id: 'date_5', name: '?? ??', icon: '??', desc: '??? 5?', check: () => state.dateCount >= 5, reward: () => { addCoins(80); changeStat('charm', 10); }, title: '?? ??' },
+      { id: 'date_20', name: '데이트 숙련자', icon: '💖', desc: '데이트 20회', check: () => state.dateCount >= 20, reward: () => { state.gems += 1; }, title: '데이트 숙련자' },
+      { id: 'date_50', name: '연애 고수', icon: '💘', desc: '데이트 50회', check: () => state.dateCount >= 50, reward: () => { state.gems += 2; changeStat('charm', 30); }, title: '연애 고수' },
       { id: 'level_5', name: '?? ??', icon: '??', desc: '?? 5', check: () => state.level >= 5, reward: () => addCoins(20) },
       { id: 'level_15', name: '?? ???', icon: '?', desc: '?? 15', check: () => state.level >= 15, reward: () => addCoins(120), title: '???' },
       { id: 'level_25', name: '?? ??', icon: '??', desc: '?? 25', check: () => state.level >= 25, reward: () => { state.gems += 3; }, title: '??' },
@@ -3080,6 +3098,8 @@
       { id: 't_gamer', name: '?????', condition: () => state.gamingCount >= 50 },
       { id: 't_social', name: '??', condition: () => state.talkCount >= 30 && state.fame >= 30 },
       { id: 't_lover', name: '?? ??', condition: () => state.dateCount >= 5 },
+      { id: 't_date_veteran', name: '데이트 숙련자', condition: () => state.dateCount >= 20 },
+      { id: 't_love_master', name: '연애 고수', condition: () => state.dateCount >= 50 },
       { id: 't_legend', name: '??', condition: () => state.level >= 25 },
       { id: 't_myth', name: '??', condition: () => state.level >= PRESTIGE_REQUIRED_LEVEL },
       { id: 't_veteran', name: '???', condition: () => state.level >= 15 },
@@ -3157,6 +3177,8 @@
       t_gamer: [{ key: 'mood', value: 0.03, label: '기분 획득 +3%' }],
       t_social: [{ key: 'talk', value: 0.04, label: '대화/놀림 효율 +4%' }],
       t_lover: [{ key: 'charm', value: 0.04, label: '매력 획득 +4%' }],
+      t_date_veteran: [{ key: 'charm', value: 0.02, label: '데이트 경험치 · 매력 획득 +2%' }],
+      t_love_master: [{ key: 'charm', value: 0.03, label: '연애 감각 · 매력 획득 +3%' }],
       t_veteran: [{ key: 'exp', value: 0.02, label: '경험치 획득 +2%' }],
       t_legend: [{ key: 'exp', value: 0.03, label: '경험치 획득 +3%' }],
       t_myth: [{ key: 'all', value: 0.03, label: '전체 행동 효율 +3%' }],
@@ -3752,6 +3774,8 @@
         logs: ['문주성 키우기가 시작되었습니다. 오늘도 성장 가보자.'],
         lastSavedAt: 0,
         lastEventAt: Date.now(),
+        lastDateAt: 0,
+        dateStreak: 0,
         endingSeen: false,
         dailyClaimDate: '',
         dailyStreak: 0,
@@ -3866,6 +3890,12 @@
       if (typeof state.gemUpgrades.permanentClick !== 'number') state.gemUpgrades.permanentClick = 0;
       if (typeof state.gemUpgrades.permanentEfficiency !== 'number') state.gemUpgrades.permanentEfficiency = 0;
       if (typeof state.legendBoxOpened !== 'number') state.legendBoxOpened = 0;
+    }
+
+    function ensureActionBalanceState() {
+      if (typeof state.lastDateAt !== 'number') state.lastDateAt = 0;
+      if (typeof state.dateStreak !== 'number') state.dateStreak = 0;
+      if (typeof state.lastRestAt !== 'number') state.lastRestAt = 0;
     }
 
     function getGemUpgradeRank(key) {
@@ -4521,6 +4551,15 @@
       return Math.max(0, Math.ceil(remaining / 1000));
     }
 
+    function getDateCooldownRemaining() {
+      const remaining = DATE_COOLDOWN_MS - (Date.now() - (state.lastDateAt || 0));
+      return Math.max(0, Math.ceil(remaining / 1000));
+    }
+
+    function getDateRewardFactor(streak = state.dateStreak || 0) {
+      return Math.max(0.55, 1 - Math.max(0, streak - 1) * 0.15);
+    }
+
     function getRestExpReward(randomize = false) {
       if (state.energy >= 70) return 0;
       return randomize ? Math.floor(Math.random() * 4) : 3;
@@ -4589,13 +4628,16 @@
       if (!action.canRun()) {
         const failMessage = actionId === 'rest' && getRestCooldownRemaining() > 0
           ? '휴식 대기 ' + getRestCooldownRemaining() + '초'
-          : cleanVisibleText(action.fail, '조건이 부족합니다.');
+          : actionId === 'date' && getDateCooldownRemaining() > 0
+            ? '데이트 대기 ' + getDateCooldownRemaining() + '초'
+            : cleanVisibleText(action.fail, '조건이 부족합니다.');
         showToast(failMessage, 'danger');
         addLog(failMessage, 'warn');
         queueRender();
         return;
       }
       action.run();
+      if (actionId !== 'date') state.dateStreak = 0;
       triggerActionFlavorEvent(actionId);
       grantFriendXpForAction(actionId);
       state.totalActions += 1;
@@ -4611,6 +4653,7 @@
       state.focus -= 8;
       state.challengeCount += 1;
       state.totalActions += 1;
+      state.dateStreak = 0;
 
       const chance = getChallengeChance();
       const success = Math.random() * 100 < chance;
@@ -4796,11 +4839,67 @@
     }
 
     function getTitleCollectionBonus() {
-      return Math.min(0.15, getUnlockedTitleCount() * 0.003);
+      return Math.min(TITLE_COLLECTION_BONUS_MAX, getUnlockedTitleCount() * TITLE_COLLECTION_BONUS_PER_TITLE);
     }
 
     function getTitleEffects(titleId) {
       return titleEffectMap[titleId] || [];
+    }
+
+    function isTitlePercentEffect(key) {
+      return ['all', 'study', 'workout', 'rest', 'mood', 'talk', 'charm', 'exp', 'fame', 'eventReward', 'coin', 'friendXp', 'meditate'].includes(key);
+    }
+
+    function isTitlePointEffect(key) {
+      return ['challengeChance', 'raidChance', 'critChance', 'clickFlat'].includes(key);
+    }
+
+    function getTitleEffectValue(effect) {
+      const value = Number(effect.value || 0);
+      if (isTitlePercentEffect(effect.key)) return Math.sign(value) * Math.min(Math.abs(value), TITLE_PERCENT_EFFECT_MAX);
+      if (isTitlePointEffect(effect.key)) return Math.sign(value) * Math.min(Math.abs(value), TITLE_POINT_EFFECT_MAX);
+      return value;
+    }
+
+    function formatSmallBonus(value) {
+      return (Math.round(value * 10) / 10).toString();
+    }
+
+    function formatTitleEffect(effect) {
+      const prefix = effect.label && effect.label.includes('·') ? effect.label.split('·')[0].trim() + ' · ' : '';
+      const value = getTitleEffectValue(effect);
+      const percent = formatSmallBonus(Math.abs(value) * 100);
+      const point = formatSmallBonus(Math.abs(value));
+      const sign = value >= 0 ? '+' : '-';
+      const labels = {
+        all: '전체 행동 효율',
+        study: '공부/프로젝트 지식 효율',
+        workout: '운동 효율',
+        rest: '휴식 효율',
+        mood: '기분 획득',
+        talk: '대화/놀림 효율',
+        charm: '매력 획득',
+        exp: '경험치 획득',
+        fame: '명성 획득',
+        eventReward: '이벤트 보상',
+        coin: '코인 획득',
+        friendXp: '친구 관계도 획득',
+        meditate: '명상 효율',
+        challengeChance: '도전 성공률 보정',
+        raidChance: '레이드 성공률',
+        critChance: '치명타 확률',
+        clickFlat: '클릭 기본값',
+        autoCoin: '자동 코인',
+        autoExp: '자동 경험치'
+      };
+      const name = labels[effect.key] || effect.key;
+      if (isTitlePercentEffect(effect.key)) return prefix + name + ' ' + sign + percent + '%';
+      if (effect.key === 'critChance' || effect.key === 'raidChance') return prefix + name + ' ' + sign + point + '%';
+      if (effect.key === 'challengeChance') return prefix + name + ' ' + sign + point;
+      if (effect.key === 'clickFlat') return prefix + name + ' ' + sign + point;
+      if (effect.key === 'autoCoin') return prefix + name + ' +' + value + '/5초';
+      if (effect.key === 'autoExp') return prefix + name + ' +' + value + '/초';
+      return effect.label || (name + ' ' + sign + value);
     }
 
     function getTitleBonus(key) {
@@ -4808,20 +4907,20 @@
       return Object.keys(state.unlockedTitles).reduce((total, titleId) => {
         if (!state.unlockedTitles[titleId]) return total;
         return total + getTitleEffects(titleId).reduce((sum, effect) => {
-          return sum + (effect.key === key ? effect.value : 0);
+          return sum + (effect.key === key ? getTitleEffectValue(effect) : 0);
         }, 0);
       }, 0);
     }
 
     function formatTitleEffects(titleId) {
       const effects = getTitleEffects(titleId);
-      return effects.length ? effects.map((effect) => effect.label).join(' · ') : '효과 없음';
+      return effects.length ? effects.map((effect) => formatTitleEffect(effect)).join(' · ') : '효과 없음';
     }
 
     function getTitleBonusSummary() {
       const activeEffects = [];
       Object.keys(state.unlockedTitles || {}).forEach((titleId) => {
-        if (state.unlockedTitles[titleId]) activeEffects.push(...getTitleEffects(titleId).map((effect) => effect.label));
+        if (state.unlockedTitles[titleId]) activeEffects.push(...getTitleEffects(titleId).map((effect) => formatTitleEffect(effect)));
       });
       return activeEffects.length ? activeEffects.slice(0, 3).join(' · ') + (activeEffects.length > 3 ? ' 외 ' + (activeEffects.length - 3) + '개' : '') : '없음';
     }
@@ -5854,6 +5953,7 @@
         ensureGemState();
         ensureClipState();
         ensureLeaderboardState();
+        ensureActionBalanceState();
         if (migrating) {
           addLog('이전 저장 데이터를 새 버전으로 이전했습니다.', 'event');
         } else {
@@ -6430,16 +6530,23 @@
           exp: getRestExpReward(false)
         },
         work: { energy: -12, coins: mult(24, 'coin'), exp: getActionExp(14) },
-        talk: { mood: -4, charm: mult(5, 'talk'), fame: mult(3, 'talk'), exp: getActionExp(20) },
+        talk: { mood: -5, charm: mult(4, 'talk'), fame: mult(2, 'fame'), exp: getActionExp(14) },
         meditate: { energy: -4, focus: mult(4, 'meditate'), mood: 3, exp: getActionExp(12) },
         adventure: { energy: -16, coins: mult(18 + Math.floor(state.luck / 4), 'coin'), fame: mult(4, 'fame'), exp: getActionExp(34) },
         gaming: { mood: mult(14, 'mood'), focus: 2, energy: -8, exp: getActionExp(14) },
-        date: { coins: -14, charm: mult(8, 'charm'), mood: mult(10, 'mood'), fame: mult(6, 'fame'), exp: getActionExp(30) },
-        project: { energy: -14, focus: -3, knowledge: mult(4, 'study'), fame: mult(5, 'fame'), coins: mult(12, 'coin'), exp: getActionExp(38) },
+        date: {
+          coins: -32,
+          energy: -10,
+          charm: Math.round(mult(4, 'charm') * getDateRewardFactor()),
+          mood: Math.round(6 * getDateRewardFactor()),
+          fame: Math.round(mult(4, 'fame') * getDateRewardFactor()),
+          exp: getActionExp(Math.round(16 * getDateRewardFactor()))
+        },
+        project: { energy: -14, focus: -5, knowledge: mult(4, 'study'), fame: mult(5, 'fame'), coins: mult(6, 'coin'), exp: getActionExp(32) },
         volunteer: { energy: -10, mood: 6, charm: mult(3, 'talk'), fame: mult(8, 'fame'), exp: getActionExp(24) },
         pc_bang: { coins: -20, energy: -10, mood: 20, focus: 4, exp: getActionExp(18) },
-        roast_friend: { mood: -6, charm: mult(4, 'talk'), fame: mult(5, 'fame'), exp: getActionExp(16) },
-        penalty_roulette: { coins: -12, luck: 1, exp: getActionExp(14) },
+        roast_friend: { mood: -12, energy: -4, charm: mult(3, 'talk'), fame: mult(3, 'fame'), exp: getActionExp(9, { levelBonus: false }) },
+        penalty_roulette: { coins: -22, energy: -5, mood: -8, exp: getActionExp(6, { levelBonus: false }) },
         challenge: {
           energy: -24,
           focus: -8,
@@ -6466,6 +6573,8 @@
       els.impactTitle.textContent = action ? action.name + ' 예상 변화' : '현재 상태';
       if (id === 'rest' && getRestCooldownRemaining() > 0) {
         els.impactHint.textContent = '휴식 대기 ' + getRestCooldownRemaining() + '초. 쿨타임 후 큰 회복이 가능합니다.';
+      } else if (id === 'date' && getDateCooldownRemaining() > 0) {
+        els.impactHint.textContent = '데이트 대기 ' + getDateCooldownRemaining() + '초. 연속 데이트 보상은 점점 줄어듭니다.';
       } else {
         els.impactHint.textContent = action ? '클릭하면 게이지처럼 반영됩니다.' : '행동에 마우스를 올리면 예상 변화가 보입니다.';
       }
@@ -6503,16 +6612,16 @@
         workout: '-10 체력',
         rest: getRestCooldownRemaining() > 0 ? '휴식 대기 ' + getRestCooldownRemaining() + '초' : '+큰 회복',
         work: '-12 체력 / +코인',
-        talk: '-4 기분',
+        talk: '-5 기분',
         meditate: '-4 체력 / +집중',
         adventure: '-16 체력 / +코인',
         gaming: '-8 체력',
-        date: '-14 코인',
-        project: '-14 체력 / -3 집중',
+        date: getDateCooldownRemaining() > 0 ? '데이트 대기 ' + getDateCooldownRemaining() + '초' : '-32 코인 / -10 체력',
+        project: '-14 체력 / -5 집중',
         volunteer: '-10 체력',
         pc_bang: '-20 코인 / -10 체력',
-        roast_friend: '-6 기분 / +명성',
-        penalty_roulette: '-12 코인 / 랜덤',
+        roast_friend: '-12 기분 / -4 체력',
+        penalty_roulette: '-22 코인 / 랜덤',
         challenge: '-24 체력 / -8 집중'
       };
       return summaries[actionId] || '자세한 변화는 위 패널';
@@ -7222,18 +7331,18 @@
       patchById(actions, {
         study: { name: '공부하기', icon: '📚', tip: '지식과 집중을 올리는 기본 성장 행동입니다.' },
         workout: { name: '운동하기', icon: '💪', tip: '운동 능력과 기분을 올립니다.' },
-        rest: { name: '휴식하기', icon: '😴', desc: '체력 +45 · 기분 +20 · 경험 +0~3 · 쿨타임 8초', tip: '체력과 기분을 크게 회복합니다. 특성/시설로 쿨타임이 줄어듭니다.' },
+        rest: { name: '휴식하기', icon: '😴', desc: '체력 +45 · 기분 +20 · 경험 +0~3 · 쿨타임 20초', tip: '체력과 기분을 크게 회복합니다. 특성/시설로 쿨타임이 줄어듭니다.' },
         work: { name: '알바하기', icon: '💼', tip: '체력을 써서 코인을 벌어옵니다.' },
-        talk: { name: '대화하기', icon: '💬', desc: '기분 -4 · 매력 +5 · 명성 +3 · 경험 +20', tip: '사회성을 기르는 행동입니다.' },
+        talk: { name: '대화하기', icon: '💬', desc: '기분 -5 · 매력 +4 · 명성 +2 · 경험 +14', tip: '사회성을 기르는 행동입니다.' },
         meditate: { name: '명상하기', icon: '🧘', tip: '체력을 조금 쓰고 집중을 회복합니다.' },
         adventure: { name: '모험하기', icon: '🧭', desc: '체력 -16 · 코인 +18 · 명성 +4 · 경험 +34', tip: '운과 보상을 노리는 행동입니다.' },
         gaming: { name: '게임하기', icon: '🎮', tip: '기분을 올리고 게임 이벤트를 노립니다.' },
-        date: { name: '데이트하기', icon: '💖', desc: '코인 -14 · 매력 +8 · 기분 +10 · 명성 +6 · 경험 +30', tip: '매력과 명성을 올리는 행동입니다.' },
-        project: { name: '프로젝트', icon: '🛠️', desc: '체력 -14 · 집중 -3 · 지식 +4 · 명성 +5 · 코인 +12 · 경험 +38', tip: '큰 경험치를 주는 고효율 행동입니다.' },
+        date: { name: '데이트하기', icon: '💖', desc: '코인 -32 · 체력 -10 · 매력 +4 · 기분 +6 · 명성 +4 · 경험 +16 · 쿨타임 20초', tip: '매력과 명성을 올리는 프리미엄 사회 행동입니다.' },
+        project: { name: '프로젝트', icon: '🛠️', desc: '체력 -14 · 집중 -5 · 지식 +4 · 명성 +5 · 코인 +6 · 경험 +32', tip: '지식 기반의 큰 성장 행동입니다.' },
         volunteer: { name: '봉사하기', icon: '🤝', desc: '체력 -10 · 기분 +6 · 매력 +3 · 명성 +8 · 경험 +24', tip: '명성을 안정적으로 올립니다.' },
         pc_bang: { name: 'PC방 가기', icon: '🖥️', tip: '코인을 쓰고 기분과 집중을 회복합니다.' },
-        roast_friend: { name: '친구 놀리기', icon: '😈', tip: '기분을 써서 명성과 웃긴 이벤트를 얻습니다.' },
-        penalty_roulette: { name: '벌칙 룰렛', icon: '🎲', tip: '코인을 쓰고 랜덤 벌칙 이벤트를 발생시킵니다.' }
+        roast_friend: { name: '친구 놀리기', icon: '😈', desc: '기분 -12 · 체력 -4 · 매력 +3 · 명성 +3 · 경험 +9 · 놀림 이벤트 60%', tip: '기분과 체력을 써서 명성과 웃긴 이벤트를 노립니다.' },
+        penalty_roulette: { name: '벌칙 룰렛', icon: '🎲', desc: '코인 -22 · 체력 -5 · 기분 -8 · 행운 +1 확률 30% · 경험 +6 · 벌칙 이벤트 70%', tip: '코인과 컨디션을 쓰고 랜덤 벌칙 이벤트를 노립니다.' }
       });
 
       patchById(shopItems, {
@@ -7257,7 +7366,7 @@
         legendary_aura: { name: '전설의 오라', icon: '🌌', desc: '모든 스탯 +20, 명성 +30, 행운 +5' },
         planner_board: { name: '계획 보드', icon: '📋', desc: '집중 +15, 지식 +10' },
         mentor_call: { name: '멘토 통화권', icon: '☎️', desc: '명성 +18, 매력 +8, 경험 +30' },
-        rest_room: { name: '회복 라운지', icon: '🛋️', desc: '체력과 기분을 즉시 100으로 회복' }
+        rest_room: { name: '회복 라운지', icon: '🛋️', desc: '체력 +60 · 기분 +60' }
       });
 
       patchById(skills, {
@@ -7392,6 +7501,8 @@
         t_gamer: '게임러',
         t_social: '인싸',
         t_lover: '로맨티스트',
+        t_date_veteran: '데이트 숙련자',
+        t_love_master: '연애 고수',
         t_legend: '전설',
         t_myth: '신화',
         t_veteran: '숙련자',
@@ -7504,6 +7615,8 @@
         gaming_50: '게임러',
         talk_30: '인싸',
         date_5: '데이트 성공',
+        date_20: '데이트 숙련자',
+        date_50: '연애 고수',
         level_5: '레벨 입문',
         level_15: '숙련자',
         level_25: '전설 등극',
@@ -7555,6 +7668,8 @@
         gaming_50: '게임러',
         talk_30: '인싸',
         date_5: '로맨티스트',
+        date_20: '데이트 숙련자',
+        date_50: '연애 고수',
         level_15: '숙련자',
         level_25: '전설',
         level_50: '신화',
@@ -7665,6 +7780,7 @@
       ensureGemState();
       ensureClipState();
       ensureLeaderboardState();
+      ensureActionBalanceState();
       applyTheme();
       bindEvents();
       switchTab(state.currentTab || 'actions');
