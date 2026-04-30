@@ -2887,6 +2887,7 @@
 
     let state = createInitialState();
     let lastAutoSaveAt = Date.now();
+    let lastGameTickAt = Date.now();
     let lastClickAt = 0;
     let lastClickExpAt = 0;
     let comboTimer = null;
@@ -6172,10 +6173,17 @@
       return '다음 ' + Math.max(0, Math.ceil(((state.goldenEventStats.nextAt || now) - now) / 1000)) + '초';
     }
 
-    function applyProductionUtilityTick() {
+    function getElapsedChance(perSecondChance, seconds) {
+      const chance = clamp(Number(perSecondChance || 0), 0, 1);
+      const elapsed = Math.max(0, Number(seconds || 0));
+      if (chance <= 0 || elapsed <= 0) return 0;
+      return 1 - Math.pow(1 - chance, elapsed);
+    }
+
+    function applyProductionUtilityTick(seconds = 1) {
       const rates = getProductionRates();
       const friendChance = Math.min(0.08, rates.friendChance || 0);
-      if (friendChance > 0 && Math.random() < friendChance) {
+      if (friendChance > 0 && Math.random() < getElapsedChance(friendChance, seconds)) {
         const available = friends.filter((friend) => getFriendLevel(friend.id) < 5);
         const friend = available[Math.floor(Math.random() * available.length)];
         if (friend) {
@@ -6184,7 +6192,7 @@
         }
       }
       const crystalChance = Math.min(0.005, rates.crystalChance || 0);
-      if (state.growthCrystalUnlocked && crystalChance > 0 && Math.random() < crystalChance) {
+      if (state.growthCrystalUnlocked && crystalChance > 0 && Math.random() < getElapsedChance(crystalChance, seconds)) {
         state.growthCrystals += 1;
         showIdleFacilityFloat('성장 결정 +1');
         addLog('💠 문키 우주센터에서 아주 드물게 성장 결정을 발견했다.', 'success');
@@ -6379,52 +6387,64 @@
       addFloatingText(text, rect.left + rect.width * 0.52, rect.top + rect.height * 0.38, false);
     }
 
-    function applyIdleFacilityTick() {
+    function applyIdleFacilityTick(seconds = 1) {
       ensureFacilityState();
+      const elapsedTicks = Math.max(1, Math.floor(Number(seconds || 1)));
 
       const recovery = getFacilityBonus('idleRecovery');
       if (recovery > 0) {
-        state.idleRecoveryTick += 1;
+        state.idleRecoveryTick += elapsedTicks;
         if (state.idleRecoveryTick >= IDLE_RECOVERY_INTERVAL_TICKS) {
-          changeStat('energy', recovery, false);
-          changeStat('mood', recovery, false);
-          showIdleFacilityFloat('휴식 캡슐 +' + recovery);
-          state.idleRecoveryTick = 0;
+          const count = Math.floor(state.idleRecoveryTick / IDLE_RECOVERY_INTERVAL_TICKS);
+          changeStat('energy', recovery * count, false);
+          changeStat('mood', recovery * count, false);
+          showIdleFacilityFloat('휴식 캡슐 +' + recovery * count);
+          state.idleRecoveryTick %= IDLE_RECOVERY_INTERVAL_TICKS;
         }
       }
 
       const friendXp = getFacilityBonus('idleFriendXp');
       if (friendXp > 0) {
-        state.idleFriendTick += 1;
+        state.idleFriendTick += elapsedTicks;
         if (state.idleFriendTick >= IDLE_FRIEND_INTERVAL_TICKS) {
-          const available = friends.filter((friend) => getFriendLevel(friend.id) < 5);
-          const friend = available[Math.floor(Math.random() * available.length)];
-          if (friend) {
-            grantFriendXp(friend.id, friendXp);
-            showIdleFacilityFloat('단톡방 +' + friendXp);
+          const count = Math.min(20, Math.floor(state.idleFriendTick / IDLE_FRIEND_INTERVAL_TICKS));
+          let granted = 0;
+          for (let i = 0; i < count; i += 1) {
+            const available = friends.filter((friend) => getFriendLevel(friend.id) < 5);
+            const friend = available[Math.floor(Math.random() * available.length)];
+            if (friend) {
+              grantFriendXp(friend.id, friendXp);
+              granted += friendXp;
+            }
           }
-          state.idleFriendTick = 0;
+          if (granted) showIdleFacilityFloat('단톡방 +' + granted);
+          state.idleFriendTick %= IDLE_FRIEND_INTERVAL_TICKS;
         }
       }
 
       const idleStat = getFacilityBonus('idleStat');
       if (idleStat > 0) {
-        state.idleTrainingTick += 1;
+        state.idleTrainingTick += elapsedTicks;
         if (state.idleTrainingTick >= IDLE_TRAINING_INTERVAL_TICKS) {
+          const count = Math.min(30, Math.floor(state.idleTrainingTick / IDLE_TRAINING_INTERVAL_TICKS));
           const keys = ['knowledge', 'fitness', 'charm', 'focus'];
-          const key = keys[Math.floor(Math.random() * keys.length)];
-          changeStat(key, idleStat, false);
-          showIdleFacilityFloat(formatStatName(key) + ' +' + idleStat);
-          state.idleTrainingTick = 0;
+          for (let i = 0; i < count; i += 1) {
+            const key = keys[Math.floor(Math.random() * keys.length)];
+            changeStat(key, idleStat, false);
+          }
+          showIdleFacilityFloat('자동 훈련 +' + idleStat * count);
+          state.idleTrainingTick %= IDLE_TRAINING_INTERVAL_TICKS;
         }
       }
 
       const clipChance = getFacilityBonus('idleClipChance');
       if (clipChance > 0) {
-        state.idleClipTick += 1;
+        state.idleClipTick += elapsedTicks;
         if (state.idleClipTick >= IDLE_CLIP_INTERVAL_TICKS) {
-          state.idleClipTick = 0;
-          if (Math.random() < clipChance) {
+          const count = Math.min(10, Math.floor(state.idleClipTick / IDLE_CLIP_INTERVAL_TICKS));
+          state.idleClipTick %= IDLE_CLIP_INTERVAL_TICKS;
+          for (let i = 0; i < count; i += 1) {
+            if (Math.random() >= clipChance) continue;
             const unowned = clipCatalog.filter((clip) => !(state.clipCollection && state.clipCollection[clip.id]));
             const clip = unowned[Math.floor(Math.random() * unowned.length)];
             if (clip) collectClip(clip.id, { label: '흑역사 녹화실' });
@@ -9067,24 +9087,28 @@
     /* ============ 寃뚯엫 猷⑦봽 ============ */
 
     function gameTick() {
+      const now = Date.now();
+      const elapsedMs = Math.max(TICK_MS, now - (lastGameTickAt || now));
+      lastGameTickAt = now;
+      const elapsedSeconds = Math.max(1, Math.min(BALANCE.offlineRewardMaxMs / 1000, elapsedMs / 1000));
       ensureProductionState();
       ensureBuffState();
       removeExpiredBuffs();
-      updateRaidTicketRegen();
-      applyProductionSeconds(1);
-      runAutoClickTick(1);
-      applyProductionUtilityTick();
+      updateRaidTicketRegen(now);
+      applyProductionSeconds(elapsedSeconds);
+      runAutoClickTick(elapsedSeconds);
+      applyProductionUtilityTick(elapsedSeconds);
       runAutomationTick();
       const autoCoin = getAutoCoinsPerFiveSeconds();
-      if (autoCoin > 0) state.autoCoinTick = ((state.autoCoinTick || 0) + 1) % 5;
-      applyIdleFacilityTick();
+      if (autoCoin > 0) state.autoCoinTick = ((state.autoCoinTick || 0) + Math.floor(elapsedSeconds)) % 5;
+      applyIdleFacilityTick(elapsedSeconds);
       triggerRareTickEvent();
       rollSeasonEvent();
       maybeSpawnGoldenEvent();
       maybeRandomEvent();
-      if (Date.now() - lastAutoSaveAt >= AUTO_SAVE_MS) {
+      if (now - lastAutoSaveAt >= AUTO_SAVE_MS) {
         saveGame();
-        lastAutoSaveAt = Date.now();
+        lastAutoSaveAt = now;
       }
       queueRender();
     }
