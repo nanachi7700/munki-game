@@ -2041,7 +2041,7 @@
               <div class="row-card" style="grid-template-columns: 1fr;">
                 <div>
                   <div class="meta"><span class="icon-circle">🏆</span>온라인 랭킹</div>
-                  <div class="desc">랭킹 로그인/갱신 시 닉네임과 게임 진행 수치가 온라인 랭킹에 공개됩니다. 비밀번호, 이메일, 개인 계정 정보는 받지 않습니다.</div>
+                  <div class="desc">랭킹 로그인/갱신 시 닉네임과 게임 진행 수치가 온라인 랭킹에 공개됩니다. 비밀번호, 이메일, 개인 계정 정보는 받지 않습니다. 현재 랭킹은 베타/친구용 랭킹이며, 로컬 저장 데이터를 기준으로 계산됩니다. 정식 경쟁 랭킹이 아닙니다.</div>
                 </div>
               </div>
               <div class="leaderboard-score" id="leaderboardScore"></div>
@@ -2163,17 +2163,18 @@
     const IDLE_FRIEND_INTERVAL_TICKS = 30;
     const IDLE_TRAINING_INTERVAL_TICKS = 20;
     const IDLE_CLIP_INTERVAL_TICKS = 10800;
-    const BALANCE_CHOICE_CHANCE = 0.06;
+    const BALANCE_CHOICE_CHANCE = 0.04;
     const BALANCE_CHOICE_COOLDOWN_MS = 60000;
     const BALANCE_CHOICE_ACTION_INTERVAL = 8;
-    const BALANCE_CHOICE_PITY_ACTIONS = 45;
+    const BALANCE_CHOICE_PITY_ACTIONS = 60;
     const BASE_REST_COOLDOWN_MS = 20000;
     const MIN_REST_COOLDOWN_MS = 4000;
     const DATE_COOLDOWN_MS = 20000;
+    const CHALLENGE_COOLDOWN_MS = 15000;
     const TITLE_COLLECTION_BONUS_PER_TITLE = 0.002;
     const TITLE_COLLECTION_BONUS_MAX = 0.05;
-    const TITLE_PERCENT_EFFECT_MAX = 0.002;
-    const TITLE_POINT_EFFECT_MAX = 0.2;
+    const TITLE_PERCENT_EFFECT_MAX = 0.01;
+    const TITLE_POINT_EFFECT_MAX = 1;
     const COMBO_TIMEOUT_MS = 4500;
     const PRESTIGE_REQUIRED_LEVEL = 50;
     const CLICK_EXP_INTERVAL_MS = 350;
@@ -2263,14 +2264,14 @@
           state.talkCount += 1;
           addLog('문주성이 대화에 성공했다. 사회성이 올랐다.', 'success');
         } },
-      { id: 'meditate', name: '명상하기', icon: '🧘', desc: '체력 -4 · 집중 +4 · 기분 +3 · 행운 +1 확률 30% · 경험 +12', tip: '체력을 조금 쓰고 집중을 회복합니다.',
-        canRun: () => state.energy >= 4, fail: '명상에는 체력 4가 필요합니다.',
+      { id: 'meditate', name: '명상하기', icon: '🧘', desc: '체력 -5 · 집중 +3 · 기분 +2 · 행운 +1 확률 20% · 경험 +8', tip: '체력을 조금 쓰고 집중을 회복합니다.',
+        canRun: () => state.energy >= 5, fail: '명상에는 체력 5가 필요합니다.',
         run: () => {
-          state.energy -= 4;
-          changeStat('focus', mult(4, 'meditate'));
-          changeStat('mood', 3);
-          if (Math.random() < 0.3) changeStat('luck', 1);
-          gainActionExp(12);
+          state.energy -= 5;
+          changeStat('focus', mult(3, 'meditate'));
+          changeStat('mood', 2);
+          if (Math.random() < 0.2) changeStat('luck', 1);
+          gainActionExp(8);
           state.meditateCount += 1;
           addLog('문주성이 잠깐 마음을 정리했다. 집중이 돌아왔다.', 'success');
         } },
@@ -2278,13 +2279,13 @@
         canRun: () => state.energy >= 16, fail: '체력이 부족해서 모험할 수 없습니다.',
         run: () => {
           state.energy -= 16;
-          const luckBonus = Math.floor(state.luck / 4);
+          const luckBonus = Math.min(25, Math.floor(state.luck / 6));
           addCoins(mult(18 + luckBonus, 'coin'));
           changeStat('fame', mult(4, 'fame'));
           gainActionExp(34);
           state.adventureCount += 1;
-          if (Math.random() < 0.18 + state.luck * 0.005) {
-            const bonus = 8 + Math.floor(state.luck / 3);
+          if (Math.random() < Math.min(0.35, 0.18 + state.luck * 0.003)) {
+            const bonus = Math.min(50, 8 + Math.floor(state.luck / 5));
             addCoins(bonus);
             addLog('모험 중 보너스 코인을 발견했다. (+' + formatBigAmount(bonus) + ' 코인)', 'event');
             spawnParticles(els.stageEl, 16, '#f4c244');
@@ -2347,17 +2348,17 @@
           state.volunteerCount = (state.volunteerCount || 0) + 1;
           addLog('봉사를 마쳤다. 명성이 조용히 올랐다.', 'success');
         } },
-      { id: 'pc_bang', name: 'PC방 가기', icon: '🖥️', desc: '코인 -20 · 체력 -10 · 기분 +20 · 집중 +4 · 경험 +18 · 이벤트 확률 60%', tip: '코인을 쓰고 기분과 집중을 회복합니다.',
-        canRun: () => state.coins >= 20 && state.energy >= 10, fail: 'PC방에는 코인 20, 체력 10이 필요합니다.',
+      { id: 'pc_bang', name: 'PC방 가기', icon: '🖥️', desc: '코인 -28 · 체력 -12 · 기분 +16 · 집중 +3 · 경험 +14 · 이벤트 확률 35%', tip: '코인을 쓰고 기분과 집중을 회복합니다.',
+        canRun: () => state.coins >= 28 && state.energy >= 12, fail: 'PC방에는 코인 28, 체력 12가 필요합니다.',
         run: () => {
-          state.coins = Math.max(0, state.coins - 20);
-          state.energy -= 10;
-          changeStat('mood', 20);
-          changeStat('focus', 4);
-          gainActionExp(18);
+          state.coins = Math.max(0, state.coins - 28);
+          state.energy -= 12;
+          changeStat('mood', 16);
+          changeStat('focus', 3);
+          gainActionExp(14);
           state.pcBangCount = (state.pcBangCount || 0) + 1;
           addLog('문주성이 PC방에 갔다. 집중과 기분이 살아났다.', 'event');
-          if (Math.random() < 0.6) triggerChaosEvent();
+          if (Math.random() < 0.35) triggerChaosEvent();
         } },
       { id: 'roast_friend', name: '친구 놀리기', icon: '😈', desc: '기분 -12 · 체력 -4 · 매력 +3 · 명성 +3 · 경험 +9 · 놀림 이벤트 60%', tip: '기분과 체력을 써서 명성과 웃긴 이벤트를 노립니다.',
         canRun: () => state.mood >= 12 && state.energy >= 4, fail: '친구 놀리기에는 기분 12, 체력 4가 필요합니다.',
@@ -2386,46 +2387,46 @@
     );
 
     const shopItems = [
-      { id: 'energy_snack', name: '에너지 간식', price: 80, priceGrowth: 1.25, max: 8, cooldownMs: 15000, icon: '🍪', category: 'consume', shopGroup: 'consumables', desc: '체력 +30 회복 · 회차당 8회 · 쿨타임 15초', repeatable: true,
-        buy: () => { changeStat('energy', 30); } },
-      { id: 'mood_drink', name: '기분 음료', price: 75, priceGrowth: 1.25, max: 8, cooldownMs: 15000, icon: '🥤', category: 'consume', shopGroup: 'consumables', desc: '기분 +22 회복 · 회차당 8회 · 쿨타임 15초', repeatable: true,
-        buy: () => { changeStat('mood', 22); } },
-      { id: 'focus_note', name: '집중 노트', price: 120, priceGrowth: 1.35, max: 10, cooldownMs: 30000, icon: '📓', category: 'consume', shopGroup: 'consumables', desc: '30초간 공부방 체인 생산량 +10% · 쿨타임 30초', repeatable: true,
+      { id: 'energy_snack', name: '에너지 간식', price: 90, priceGrowth: 1.35, max: 6, cooldownMs: 30000, icon: '🍪', category: 'consume', shopGroup: 'consumables', desc: '체력 +28 회복 · 회차당 6회 · 쿨타임 30초', repeatable: true,
+        buy: () => { changeStat('energy', 28); } },
+      { id: 'mood_drink', name: '기분 음료', price: 95, priceGrowth: 1.35, max: 6, cooldownMs: 30000, icon: '🥤', category: 'consume', shopGroup: 'consumables', desc: '기분 +20 회복 · 회차당 6회 · 쿨타임 30초', repeatable: true,
+        buy: () => { changeStat('mood', 20); } },
+      { id: 'focus_note', name: '집중 노트', price: 260, priceGrowth: 1.45, unlockLevel: 8, max: 8, cooldownMs: 45000, icon: '📓', category: 'consume', shopGroup: 'consumables', desc: '30초간 자동 경험치 +10% · Lv.8 이후 · 쿨타임 45초', repeatable: true,
         buy: () => {
-          addTimedBuff({ id: 'focus_note_study_room_boost', name: '집중 노트', icon: '📓', type: 'producer', producerId: 'study_room_chain', multiplier: 0.10, durationMs: 30000 });
+          addTimedBuff({ id: 'focus_note_study_room_boost', name: '집중 노트', icon: '📓', type: 'producer', producerId: 'study_room_chain', multiplier: 0.10, durationMs: 30000, maxDurationMs: 60000, bonuses: { autoExp: 0.10 } });
         } },
-      { id: 'idea_book', name: '베스트셀러 책', price: 180, priceGrowth: 1.4, max: 10, cooldownMs: 60000, icon: '📘', category: 'consume', shopGroup: 'consumables', desc: '60초간 지식 계열 생산량 +10% · 쿨타임 60초', repeatable: true,
+      { id: 'idea_book', name: '베스트셀러 책', price: 320, priceGrowth: 1.45, unlockLevel: 10, max: 8, cooldownMs: 60000, icon: '📘', category: 'consume', shopGroup: 'consumables', desc: '60초간 공부/프로젝트 지식 효율 +8% · Lv.10 이후 · 쿨타임 60초', repeatable: true,
         buy: () => {
-          addTimedBuff({ id: 'idea_book_knowledge_boost', name: '베스트셀러 책', icon: '📘', type: 'producerCategory', category: 'knowledge', multiplier: 0.10, durationMs: 60000 });
+          addTimedBuff({ id: 'idea_book_knowledge_boost', name: '베스트셀러 책', icon: '📘', type: 'producerCategory', category: 'knowledge', multiplier: 0.08, durationMs: 60000, maxDurationMs: 120000, bonuses: { study: 0.08 } });
         } },
-      { id: 'training_kit', name: '트레이닝 세트', price: 160, priceGrowth: 1.35, max: 10, cooldownMs: 60000, icon: '🏋️', category: 'consume', shopGroup: 'consumables', desc: '60초간 클릭 보상 +10% · 쿨타임 60초', repeatable: true,
+      { id: 'training_kit', name: '트레이닝 세트', price: 300, priceGrowth: 1.45, unlockLevel: 8, max: 8, cooldownMs: 60000, icon: '🏋️', category: 'consume', shopGroup: 'consumables', desc: '60초간 클릭 보상 +8% · Lv.8 이후 · 쿨타임 60초', repeatable: true,
         buy: () => {
-          addTimedBuff({ id: 'training_kit_click_boost', name: '트레이닝 세트', icon: '🏋️', type: 'click', multiplier: 0.10, durationMs: 60000 });
+          addTimedBuff({ id: 'training_kit_click_boost', name: '트레이닝 세트', icon: '🏋️', type: 'click', multiplier: 0.08, durationMs: 60000, maxDurationMs: 120000, bonuses: { click: 0.08 } });
         } },
-      { id: 'magic_scent', name: '매력 향수', price: 200, priceGrowth: 1.45, max: 10, cooldownMs: 45000, icon: '🌹', category: 'consume', shopGroup: 'consumables', desc: '45초간 사회 계열 생산량 +10% · 쿨타임 45초', repeatable: true,
+      { id: 'magic_scent', name: '매력 향수', price: 420, priceGrowth: 1.5, unlockLevel: 12, max: 6, cooldownMs: 60000, icon: '🌹', category: 'consume', shopGroup: 'consumables', desc: '45초간 사회 계열 효율 +8% · Lv.12 이후 · 쿨타임 60초', repeatable: true,
         buy: () => {
-          addTimedBuff({ id: 'magic_scent_social_boost', name: '매력 향수', icon: '🌹', type: 'producerCategory', category: 'social', multiplier: 0.10, durationMs: 45000 });
+          addTimedBuff({ id: 'magic_scent_social_boost', name: '매력 향수', icon: '🌹', type: 'producerCategory', category: 'social', multiplier: 0.08, durationMs: 45000, maxDurationMs: 90000, bonuses: { talk: 0.08, charm: 0.08, fame: 0.08 } });
         } },
-      { id: 'garden_badge', name: '명성 배지', price: 240, priceGrowth: 1.5, max: 10, cooldownMs: 45000, icon: '🏅', category: 'consume', shopGroup: 'consumables', desc: '45초간 전체 생산량 +8% · 쿨타임 45초', repeatable: true,
+      { id: 'garden_badge', name: '명성 배지', price: 600, priceGrowth: 1.55, unlockLevel: 15, max: 5, cooldownMs: 90000, icon: '🏅', category: 'consume', shopGroup: 'consumables', desc: '45초간 전체 행동 효율 +5% · Lv.15 이후 · 쿨타임 90초', repeatable: true,
         buy: () => {
-          addTimedBuff({ id: 'garden_badge_global_producer_boost', name: '명성 배지', icon: '🏅', type: 'globalProducer', multiplier: 0.08, durationMs: 45000 });
+          addTimedBuff({ id: 'garden_badge_global_producer_boost', name: '명성 배지', icon: '🏅', type: 'globalProducer', multiplier: 0.05, durationMs: 45000, maxDurationMs: 90000, bonuses: { global: 0.05 } });
         } },
-      { id: 'lucky_clover', name: '행운 클로버', price: 220, priceGrowth: 1.5, max: 10, cooldownMs: 60000, icon: '🍀', category: 'consume', shopGroup: 'consumables', desc: '60초간 이벤트 보상 +10% · 쿨타임 60초', repeatable: true,
+      { id: 'lucky_clover', name: '행운 클로버', price: 700, priceGrowth: 1.6, unlockLevel: 15, max: 5, cooldownMs: 90000, icon: '🍀', category: 'consume', shopGroup: 'consumables', desc: '60초간 이벤트 보상 +8% · Lv.15 이후 · 쿨타임 90초', repeatable: true,
         buy: () => {
-          addTimedBuff({ id: 'lucky_clover_event_reward_boost', name: '행운 클로버', icon: '🍀', type: 'eventReward', multiplier: 0.10, durationMs: 60000 });
+          addTimedBuff({ id: 'lucky_clover_event_reward_boost', name: '행운 클로버', icon: '🍀', type: 'eventReward', multiplier: 0.08, durationMs: 60000, maxDurationMs: 120000, bonuses: { eventReward: 0.08 } });
         } },
-      { id: 'auto_growth', name: '자동 성장 플랜', price: 120, priceGrowth: 1.4, icon: '⏱️', category: 'upgrade', shopGroup: 'automation', desc: '1초마다 경험치 +1', repeatable: true,
+      { id: 'auto_growth', name: '자동 성장 플랜', price: 220, priceGrowth: 1.65, max: 12, icon: '⏱️', category: 'upgrade', shopGroup: 'automation', desc: '자동 경험치 효율 +1 · 최대 12단계', repeatable: true,
         buy: () => { state.autoExpRate += 1; } },
-      { id: 'auto_coin', name: '자동 코인 통장', price: 200, priceGrowth: 1.35, icon: '🏦', category: 'upgrade', shopGroup: 'automation', desc: '5초마다 코인 +1', repeatable: true,
+      { id: 'auto_coin', name: '자동 코인 통장', price: 240, priceGrowth: 1.45, max: 20, icon: '🏦', category: 'upgrade', shopGroup: 'automation', desc: '5초마다 코인 +1 · 최대 20단계', repeatable: true,
         buy: () => { state.autoCoinRate += 1; } },
-      { id: 'click_amp', name: '클릭 증폭기', price: 250, priceGrowth: 1.45, icon: '👆', category: 'upgrade', shopGroup: 'click', desc: '클릭 보상 +1', repeatable: true,
+      { id: 'click_amp', name: '클릭 증폭기', price: 250, priceGrowth: 1.5, max: 20, icon: '👆', category: 'upgrade', shopGroup: 'click', desc: '클릭 보상 +1 · 최대 20단계', repeatable: true,
         buy: () => { state.clickPower += 1; } },
       { id: 'crit_charm', name: '치명타 부적', price: 320, icon: '🎯', category: 'upgrade', shopGroup: 'click', desc: '클릭 치명타 확률 +3%',
         max: 5,
         buy: () => { state.critBonus += 3; } },
       { id: 'gem_box', name: '보석 상자', price: 800, priceGrowth: 1.8, unlockLevel: 25, icon: '💎', category: 'legendary', shopGroup: 'legendary', desc: '보석 +1 획득 · Lv.25 이후 · 회차당 3회', repeatable: true, max: 3,
         buy: () => { state.gems += 1; } },
-      { id: 'legend_random_box', name: '전설 랜덤박스', priceType: 'gems', price: 2, icon: '💎', category: 'legendary', shopGroup: 'legendary', desc: '극단 보상과 웃긴 실패가 섞인 보석 가챠', repeatable: true,
+      { id: 'legend_random_box', name: '전설 랜덤박스', priceType: 'gems', price: 3, unlockLevel: 25, icon: '💎', category: 'legendary', shopGroup: 'legendary', desc: '레벨 25 이후 · 회차당 3회 · 극단 보상과 웃긴 실패가 섞인 보석 가챠', repeatable: true, max: 3,
         buy: () => openLegendRandomBox() },
       { id: 'gem_click_upgrade', name: '영구 클릭 강화', priceType: 'gems', price: () => getGemClickUpgradeCost(), icon: '👆', category: 'legendary', shopGroup: 'legendary', desc: '클릭 기본 보상 +1 영구 증가', max: 5,
         getOwned: () => getGemUpgradeRank('permanentClick'),
@@ -2446,10 +2447,10 @@
     shopItems.push(
       { id: 'planner_board', name: '계획 보드', price: 180, icon: '📋', category: 'upgrade', shopGroup: 'automation', desc: '집중 +15, 지식 +10', max: 3,
         buy: () => { changeStat('focus', 15); changeStat('knowledge', 10); } },
-      { id: 'mentor_call', name: '멘토 통화권', price: 260, priceGrowth: 1.25, icon: '📞', category: 'upgrade', shopGroup: 'automation', desc: '명성 +18, 매력 +8, 경험 +30', repeatable: true,
-        buy: () => { changeStat('fame', 18); changeStat('charm', 8); gainExp(30); } },
-      { id: 'rest_room', name: '회복 라운지', price: 420, priceGrowth: 1.7, icon: '🛋️', category: 'legendary', shopGroup: 'consumables', desc: '체력 +60 · 기분 +60', repeatable: true, max: 5,
-        buy: () => { changeStat('energy', 60); changeStat('mood', 60); } }
+      { id: 'mentor_call', name: '멘토 통화권', price: 520, priceGrowth: 1.6, max: 4, cooldownMs: 120000, icon: '📞', category: 'upgrade', shopGroup: 'automation', desc: '명성 +8 · 매력 +4 · 경험 +12 · 회차당 4회 · 쿨타임 120초', repeatable: true,
+        buy: () => { changeStat('fame', 8); changeStat('charm', 4); gainExp(12); } },
+      { id: 'rest_room', name: '회복 라운지', price: 500, priceGrowth: 1.8, cooldownMs: 90000, icon: '🛋️', category: 'legendary', shopGroup: 'consumables', desc: '체력 +50 · 기분 +50 · 회차당 3회 · 쿨타임 90초', repeatable: true, max: 3,
+        buy: () => { changeStat('energy', 50); changeStat('mood', 50); } }
     );
 
     const skills = [
@@ -3053,9 +3054,9 @@
       { id: 'first_step', name: '? ???', icon: '??', desc: '?? ??', check: () => true, reward: () => addCoins(5) },
       { id: 'click_50', name: '?? ??', icon: '??', desc: '50? ??', check: () => state.clicks >= 50, reward: () => addCoins(20) },
       { id: 'click_500', name: '?? ??', icon: '?', desc: '500? ??', check: () => state.clicks >= 500, reward: () => { addCoins(80); state.gems += 1; } },
-      { id: 'click_5000', name: '??? ??', icon: '??', desc: '5000? ??', check: () => state.clicks >= 5000, reward: () => { addCoins(500); state.gems += 5; } },
+      { id: 'click_5000', name: '??? ??', icon: '??', desc: '5000? ??', check: () => state.clicks >= 5000, reward: () => { addCoins(500); state.gems += 2; } },
       { id: 'rich_100', name: '??? ??', icon: '??', desc: '?? 100 ??', check: () => state.coins >= 100, reward: () => gainExp(20) },
-      { id: 'rich_1000', name: '?? ???', icon: '??', desc: '?? 1000 ??', check: () => state.coins >= 1000, reward: () => { state.gems += 2; } },
+      { id: 'rich_1000', name: '?? ???', icon: '??', desc: '?? 1000 ??', check: () => state.coins >= 1000, reward: () => { state.gems += 1; } },
       { id: 'study_50', name: '????', icon: '??', desc: '?? 50?', check: () => state.studyCount >= 50, reward: () => changeStat('knowledge', 30), title: '????' },
       { id: 'workout_50', name: '??', icon: '???', desc: '?? 50?', check: () => state.workoutCount >= 50, reward: () => changeStat('fitness', 30), title: '??' },
       { id: 'rest_50', name: '????', icon: '??', desc: '?? 50?', check: () => state.restCount >= 50, reward: () => addCoins(50), title: '????' },
@@ -3066,16 +3067,16 @@
       { id: 'date_50', name: '연애 고수', icon: '💘', desc: '데이트 50회', check: () => state.dateCount >= 50, reward: () => { state.gems += 2; changeStat('charm', 30); }, title: '연애 고수' },
       { id: 'level_5', name: '?? ??', icon: '??', desc: '?? 5', check: () => state.level >= 5, reward: () => addCoins(20) },
       { id: 'level_15', name: '?? ???', icon: '?', desc: '?? 15', check: () => state.level >= 15, reward: () => addCoins(120), title: '???' },
-      { id: 'level_25', name: '?? ??', icon: '??', desc: '?? 25', check: () => state.level >= 25, reward: () => { state.gems += 3; }, title: '??' },
+      { id: 'level_25', name: '?? ??', icon: '??', desc: '?? 25', check: () => state.level >= 25, reward: () => { state.gems += 2; }, title: '??' },
       { id: 'level_50', name: '? ?? ??', icon: '??', desc: '?? 50', check: () => state.level >= PRESTIGE_REQUIRED_LEVEL, reward: () => { state.gems += 3; }, title: '??' },
       { id: 'prestige_1', name: '?? ??', icon: '??', desc: '? ??', check: () => state.prestige >= 1, reward: () => { state.gems += 1; }, title: '???' },
       { id: 'prestige_5', name: '?? ???', icon: '??', desc: '?? 5?', check: () => state.prestige >= 5, reward: () => { state.gems += 5; }, title: '?? ???' },
       { id: 'fame_50', name: '???', icon: '??', desc: '?? 50', check: () => state.fame >= 50, reward: () => addCoins(100), title: '???' },
-      { id: 'all_stats_30', name: '??? ?', icon: '??', desc: '?? ?? ?? 30', check: () => ['knowledge','fitness','charm','focus'].every(k => state[k] >= 30), reward: () => { state.gems += 2; }, title: '???' },
+      { id: 'all_stats_30', name: '??? ?', icon: '??', desc: '?? ?? ?? 30', check: () => ['knowledge','fitness','charm','focus'].every(k => state[k] >= 30), reward: () => { state.gems += 1; }, title: '???' },
       { id: 'crit_first', name: '??? ? ??', icon: '??', desc: '??? 1?', check: () => state.critCount >= 1, reward: () => addCoins(30) },
       { id: 'combo_50', name: '?? ??', icon: '??', desc: '50 ?? ??', check: () => state.maxCombo >= 50, reward: () => { state.gems += 1; }, title: '?? ??' },
       { id: 'project_20', name: '???? ??', icon: '??', desc: '???? 20?', check: () => (state.projectCount || 0) >= 20, reward: () => { addCoins(140); changeStat('knowledge', 25); }, title: '???? ??' },
-      { id: 'volunteer_20', name: '?? ???', icon: '??', desc: '?? 20?', check: () => (state.volunteerCount || 0) >= 20, reward: () => { state.gems += 2; changeStat('fame', 20); }, title: '?? ???' },
+      { id: 'volunteer_20', name: '?? ???', icon: '??', desc: '?? 20?', check: () => (state.volunteerCount || 0) >= 20, reward: () => { state.gems += 1; changeStat('fame', 20); }, title: '?? ???' },
       { id: 'focus_100', name: '?? ??', icon: '??', desc: '?? 100 ??', check: () => state.focus >= 100, reward: () => { addCoins(160); state.gems += 1; }, title: '?? ??' },
       { id: 'game_memer', name: '?? ? ???', icon: '??', desc: '?? ??? ??? 10?', check: () => getGameEventTotal() >= 10, reward: () => { addCoins(220); state.gems += 1; }, title: '?? ? ???' },
       { id: 'rank_survivor', name: '?? ???', icon: '??', desc: '? ??? 5?', check: () => (state.lolEventCount || 0) >= 5, reward: () => { changeStat('focus', 25); }, title: '?? ???' },
@@ -3084,7 +3085,7 @@
       { id: 'clutch_master', name: '??? ??', icon: '??', desc: '?? ??? 5?', check: () => (state.suddenEventCount || 0) >= 5, reward: () => { changeStat('fame', 20); state.gems += 1; }, title: '??? ??' },
       { id: 'cookie_sprinter', name: '??? ???', icon: '??', desc: '??? ??? 5?', check: () => (state.cookieEventCount || 0) >= 5, reward: () => { changeStat('fitness', 22); state.gems += 1; }, title: '??? ???' },
       { id: 'pc_bang_king', name: 'PC? ???', icon: '???', desc: 'PC? ?? 20?', check: () => (state.pcBangCount || 0) >= 20, reward: () => { addCoins(250); changeStat('focus', 25); }, title: 'PC? ???' },
-      { id: 'chaos_legend', name: '??? ???', icon: '??', desc: '?? ?? ??? 15?', check: () => getChaosEventTotal() >= 15, reward: () => { state.gems += 2; changeStat('fame', 25); }, title: '??? ???' },
+      { id: 'chaos_legend', name: '??? ???', icon: '??', desc: '?? ?? ??? 15?', check: () => getChaosEventTotal() >= 15, reward: () => { state.gems += 1; changeStat('fame', 25); }, title: '??? ???' },
       { id: 'gacha_victim', name: '?? ???', icon: '??', desc: '?? ??? 5?', check: () => (state.gachaEventCount || 0) >= 5, reward: () => { changeStat('luck', 15); }, title: '?? ???' },
       { id: 'chicken_captain', name: '????', icon: '??', desc: '?? ??? 5?', check: () => (state.chickenEventCount || 0) >= 5, reward: () => { changeStat('mood', 25); addCoins(120); }, title: '????' },
       { id: 'roast_machine', name: '?????', icon: '??', desc: '?? ??? 15?', check: () => getRoastEventTotal() >= 15, reward: () => { changeStat('charm', 25); state.gems += 1; }, title: '?????' },
@@ -3096,15 +3097,15 @@
       { id: 'clip_curator', name: '?? ????', icon: '??', desc: '??/?? ??? 8?', check: () => (state.clipEventCount || 0) >= 8, reward: () => { changeStat('fame', 28); addCoins(140); }, title: '?? ????' },
       { id: 'pc_food_legend', name: '???? ???', icon: '??', desc: 'PC? ?? ??? 8?', check: () => (state.pcFoodEventCount || 0) >= 8, reward: () => { changeStat('mood', 30); changeStat('energy', 18); }, title: '???? ???' },
       { id: 'party_unanimous', name: '???? ???', icon: '???', desc: '?? ?? ??? 8?', check: () => (state.teamVoteEventCount || 0) >= 8, reward: () => { changeStat('charm', 26); state.gems += 1; }, title: '???? ???' },
-      { id: 'k_game_tourist', name: '??? ???', icon: '???', desc: '?? ?? ??? 12?', check: () => getNewGameMemeTotal() >= 12, reward: () => { addCoins(260); state.gems += 2; }, title: '??? ???' },
+      { id: 'k_game_tourist', name: '??? ???', icon: '???', desc: '?? ?? ??? 12?', check: () => getNewGameMemeTotal() >= 12, reward: () => { addCoins(260); state.gems += 1; }, title: '??? ???' },
       { id: 'all_friends_lv3', name: '??? ???', icon: '??', desc: '?? ?? Lv.3 ??', check: () => getFriendLevelThreeCount() >= friends.length, reward: () => { state.gems += 2; changeStat('charm', 30); }, title: '??? ???' },
-      { id: 'all_friends_lv5', name: '?? ??? ??', icon: '??', desc: '?? ?? Lv.5 ??', check: () => getFriendLevelFiveCount() >= friends.length, reward: () => { state.gems += 5; changeStat('fame', 45); }, title: '?? ??? ??' },
+      { id: 'all_friends_lv5', name: '?? ??? ??', icon: '??', desc: '?? ?? Lv.5 ??', check: () => getFriendLevelFiveCount() >= friends.length, reward: () => { state.gems += 3; changeStat('fame', 45); }, title: '?? ??? ??' },
       { id: 'friend_event_20', name: '??? ??', icon: '??', desc: '?? ?? 20?', check: () => (state.friendEventCount || 0) >= 20, reward: () => { addCoins(320); changeStat('luck', 8); }, title: '??? ??' },
       { id: 'facility_owner', name: '??? ???', icon: '??', desc: '?? 3? ??', check: () => getBuiltFacilityCount() >= 3, reward: () => { addCoins(300); changeStat('fame', 25); }, title: '??? ???' },
-      { id: 'facility_fullset', name: '??? ???', icon: '???', desc: '?? 6? ??', check: () => getBuiltFacilityCount() >= facilities.length, reward: () => { state.gems += 4; changeStat('luck', 10); }, title: '?? ???' },
-      { id: 'all_raid_clear_week', name: '일일 보스 정복자', icon: '🐉', desc: '오늘 레이드 6종 성공', check: () => getCurrentWeekRaidClearCount() >= 6, reward: () => { state.gems += 5; changeStat('fame', 50); }, title: '일일 보스 정복자' },
+      { id: 'facility_fullset', name: '??? ???', icon: '???', desc: '?? 6? ??', check: () => getBuiltFacilityCount() >= facilities.length, reward: () => { state.gems += 2; changeStat('luck', 10); }, title: '?? ???' },
+      { id: 'all_raid_clear_week', name: '일일 보스 정복자', icon: '🐉', desc: '오늘 레이드 6종 성공', check: () => getCurrentWeekRaidClearCount() >= 6, reward: () => { state.gems += 3; changeStat('fame', 50); }, title: '일일 보스 정복자' },
       { id: 'raid_fail_five', name: '??? ???', icon: '??', desc: '??? ?? 5?', check: () => (state.raidFailCount || 0) >= 5, reward: () => { addCoins(260); changeStat('charm', 20); }, title: '??? ???' },
-      { id: 'raid_clear_six', name: '?? ?? ???', icon: '??', desc: '??? ?? ?? 6?', check: () => (state.raidClearCount || 0) >= 6, reward: () => { state.gems += 3; changeStat('luck', 8); }, title: '?? ?? ???' },
+      { id: 'raid_clear_six', name: '?? ?? ???', icon: '??', desc: '??? ?? ?? 6?', check: () => (state.raidClearCount || 0) >= 6, reward: () => { state.gems += 2; changeStat('luck', 8); }, title: '?? ?? ???' },
       { id: 'jjinda_title', name: '찐따 등극', icon: '😵', desc: '레이드 실패 3회 또는 놀림/흑역사 사건 10회', check: () => (state.raidFailCount || 0) >= 3 || (getRoastEventTotal() + (state.clipEventCount || 0)) >= 10, reward: () => { gainExp(80); changeStat('fame', 10); }, title: '찐따' },
       { id: 'assa_title', name: '자발적 아싸', icon: '🕶️', desc: '레벨 10 이상, 대화 5회 이하', check: () => state.level >= 10 && (state.talkCount || 0) <= 5, reward: () => { changeStat('focus', 15); gainExp(40); }, title: '아싸' }
     ];
@@ -3377,26 +3378,26 @@
     );
 
     const BALANCE_CHOICE_OUTCOMES = {
-      carry: { text: '의외로 캐리했다. 집중력과 명성이 같이 올랐다.', toast: '캐리 성공', run: () => { changeStat('focus', 24); changeStat('fame', 12); gainActionExp(26); } },
-      clutch: { text: '막판 집중이 터졌다. 모두가 조용히 인정했다.', toast: '클러치 성공', run: () => { changeStat('fame', 30); changeStat('mood', 12); addCoins(90); gainActionExp(18); } },
-      study: { text: '뜬금없이 배움이 있었다. 지식과 집중이 올랐다.', toast: '학습 성공', run: () => { changeStat('knowledge', 30); changeStat('focus', 10); gainActionExp(24); } },
-      focus: { text: '판단은 차분했다. 집중이 크게 올랐다.', toast: '집중 상승', run: () => { changeStat('focus', 28); changeStat('mood', 6); gainActionExp(20); } },
-      fitness: { text: '몸으로 해결했다. 운동 능력이 올랐지만 체력은 빠졌다.', toast: '피지컬 상승', run: () => { changeStat('fitness', 32); changeStat('energy', -12); gainActionExp(22); } },
-      charm: { text: '말빨로 분위기를 살렸다. 매력과 명성이 올랐다.', toast: '매력 상승', run: () => { changeStat('charm', 24); changeStat('fame', 15); changeStat('mood', 8); } },
-      fame: { text: '웃긴 장면이 박제됐다. 명성이 크게 올랐다.', toast: '명성 상승', run: () => { changeStat('fame', 34); changeStat('charm', 6); gainActionExp(18); } },
-      luck: { text: '이상하게 운이 따라줬다. 행운과 코인이 늘었다.', toast: '운빨 성공', run: () => { changeStat('luck', 4); addCoins(70); gainActionExp(18); } },
+      carry: { text: '의외로 캐리했다. 집중력과 명성이 같이 올랐다.', toast: '캐리 성공', run: () => { changeStat('focus', 10); changeStat('fame', 6); gainActionExp(12); } },
+      clutch: { text: '막판 집중이 터졌다. 모두가 조용히 인정했다.', toast: '클러치 성공', run: () => { changeStat('fame', 12); changeStat('mood', 8); addCoins(35); gainActionExp(10); } },
+      study: { text: '뜬금없이 배움이 있었다. 지식과 집중이 올랐다.', toast: '학습 성공', run: () => { changeStat('knowledge', 12); changeStat('focus', 5); gainActionExp(10); } },
+      focus: { text: '판단은 차분했다. 집중이 올랐다.', toast: '집중 상승', run: () => { changeStat('focus', 12); changeStat('mood', 4); gainActionExp(8); } },
+      fitness: { text: '몸으로 해결했다. 운동 능력이 올랐지만 체력은 빠졌다.', toast: '피지컬 상승', run: () => { changeStat('fitness', 12); changeStat('energy', -10); gainActionExp(10); } },
+      charm: { text: '말빨로 분위기를 살렸다. 매력과 명성이 올랐다.', toast: '매력 상승', run: () => { changeStat('charm', 10); changeStat('fame', 6); changeStat('mood', 5); } },
+      fame: { text: '웃긴 장면이 박제됐다. 명성이 올랐다.', toast: '명성 상승', run: () => { changeStat('fame', 12); changeStat('charm', 3); gainActionExp(8); } },
+      luck: { text: '이상하게 운이 따라줬다. 행운과 코인이 조금 늘었다.', toast: '운빨 성공', run: () => { changeStat('luck', 1); addCoins(30); gainActionExp(8); } },
       rest: { text: '무리하지 않고 빠졌다. 체력과 기분이 회복됐다.', toast: '회복 성공', run: () => { changeStat('energy', 30); changeStat('mood', 18); } },
-      money: { text: '결국 돈이 남았다. 코인이 크게 늘었다.', toast: '코인 획득', run: () => { addCoins(240); changeStat('mood', -5); gainActionExp(18); } },
-      chaosGood: { text: '말도 안 되는 선택인데 결과가 좋았다. 흑역사 후보가 생겼다.', toast: '기묘한 성공', run: () => { changeStat('luck', 3); changeStat('fame', 28); collectClip('clip_why_not', { label: '랜덤 선택' }); } },
+      money: { text: '결국 돈이 남았다. 코인이 조금 늘었다.', toast: '코인 획득', run: () => { addCoins(70); changeStat('mood', -5); gainActionExp(8); } },
+      chaosGood: { text: '말도 안 되는 선택인데 결과가 좋았다. 흑역사 후보가 생겼다.', toast: '기묘한 성공', run: () => { changeStat('luck', 1); changeStat('fame', 10); collectClip('clip_why_not', { label: '랜덤 선택' }); } },
       tilt: { text: '멘탈이 흔들렸다. 그래도 이야깃거리는 남았다.', toast: '멘탈 흔들림', run: () => { changeStat('mood', -35); changeStat('focus', -15); changeStat('fame', 8); gainActionExp(12); } },
       wallet: { text: '지갑이 얇아졌다. 대신 아주 조금 배웠다.', toast: '지갑 타격', run: () => { state.coins = Math.max(0, state.coins - 180); changeStat('mood', -12); changeStat('luck', 1); } },
       tired: { text: '몸이 먼저 항의했다. 체력과 기분이 떨어졌다.', toast: '피로 누적', run: () => { changeStat('energy', -35); changeStat('mood', -15); gainActionExp(12); } },
-      embarrassment: { text: '부끄러운 장면이 남았다. 명성은 올랐지만 기분은 내려갔다.', toast: '흑역사 생성', run: () => { changeStat('fame', 30); changeStat('mood', -25); changeStat('charm', -5); collectClip('slow_motion_judgement', { label: '랜덤 선택' }); } },
-      scam: { text: '수상한 선택이었다. 코인은 줄었고 지식만 조금 남았다.', toast: '수업료 납부', run: () => { state.coins = Math.max(0, state.coins - 300); changeStat('knowledge', 8); changeStat('mood', -8); } },
-      overwork: { text: '너무 열심히 했다. 지식은 늘었지만 몸이 갈렸다.', toast: '과몰입', run: () => { changeStat('knowledge', 22); changeStat('energy', -30); changeStat('mood', -10); } },
-      disaster: { text: '상황이 터졌다. 손해는 봤지만 단톡방 소재가 됐다.', toast: '대참사', run: () => { state.coins = Math.max(0, state.coins - 120); changeStat('mood', -30); changeStat('fame', 16); } },
+      embarrassment: { text: '부끄러운 장면이 남았다. 명성은 올랐지만 기분은 내려갔다.', toast: '흑역사 생성', run: () => { changeStat('fame', 12); changeStat('mood', -18); changeStat('charm', -3); collectClip('slow_motion_judgement', { label: '랜덤 선택' }); } },
+      scam: { text: '수상한 선택이었다. 코인은 줄었고 지식만 조금 남았다.', toast: '수업료 납부', run: () => { state.coins = Math.max(0, state.coins - 120); changeStat('knowledge', 5); changeStat('mood', -8); } },
+      overwork: { text: '너무 열심히 했다. 지식은 늘었지만 몸이 갈렸다.', toast: '과몰입', run: () => { changeStat('knowledge', 12); changeStat('energy', -24); changeStat('mood', -10); } },
+      disaster: { text: '상황이 터졌다. 손해는 봤지만 단톡방 소재가 됐다.', toast: '대참사', run: () => { state.coins = Math.max(0, state.coins - 80); changeStat('mood', -22); changeStat('fame', 8); } },
       trap: { text: '누가 봐도 함정이었다. 문주성은 그래도 눌렀다.', toast: '함정 선택', run: () => { changeStat('focus', -20); changeStat('mood', -20); gainActionExp(14); } },
-      pureBad: { text: '그냥 안 좋은 선택이었다. 후회만 남았다.', toast: '순수 손해', run: () => { changeStat('mood', -40); state.coins = Math.max(0, state.coins - 200); changeStat('focus', -15); } }
+      pureBad: { text: '그냥 안 좋은 선택이었다. 후회만 남았다.', toast: '순수 손해', run: () => { changeStat('mood', -30); state.coins = Math.max(0, state.coins - 120); changeStat('focus', -10); } }
     };
 
     function pickBalanceChoiceKind() {
@@ -3765,6 +3766,7 @@
         lastBalanceChoiceAt: 0,
         lastBalanceChoiceActionCheckAt: 0,
         lastRestAt: 0,
+        lastChallengeAt: 0,
         friendXp: {},
         friendEventCount: 0,
         builtFacilities: {},
@@ -3980,6 +3982,7 @@
       if (typeof state.lastDateAt !== 'number') state.lastDateAt = 0;
       if (typeof state.dateStreak !== 'number') state.dateStreak = 0;
       if (typeof state.lastRestAt !== 'number') state.lastRestAt = 0;
+      if (typeof state.lastChallengeAt !== 'number') state.lastChallengeAt = 0;
     }
 
     function getGemUpgradeRank(key) {
@@ -4027,19 +4030,23 @@
       state.legendBoxOpened += 1;
       const statKeys = ['knowledge', 'fitness', 'charm', 'focus', 'fame', 'luck'];
       const randomStat = statKeys[Math.floor(Math.random() * statKeys.length)];
+      const scaledCoinReward = Math.min(5000, 400 + state.level * 35 + state.prestige * 250);
+      const scaledStatReward = Math.max(80, Math.min(350, 60 + state.level * 4 + state.prestige * 25));
+      const scaledExpReward = Math.min(2000, 250 + state.level * 20 + state.prestige * 200);
+      const scaledFameReward = Math.min(250, 50 + state.level * 3);
       const roll = Math.random() * 100;
       let message = '';
       if (roll < 0.5) {
-        state.gems += 20;
-        state.sp += 3;
-        state.totalSp += 3;
+        state.gems += 6;
+        state.sp += 1;
+        state.totalSp += 1;
         state.unlockedTitles.t_probability_overlord = true;
         collectClip('gacha_wallet_cry', { label: '전설 랜덤박스' });
-        message = '0.5% 초대박! 보석 +20, SP +3, 칭호 [확률의 지배자] 획득.';
+        message = '0.5% 초대박! 보석 +6, SP +1, 칭호 [확률의 지배자] 획득.';
       } else if (roll < 2.5) {
-        state.sp += 2;
-        state.totalSp += 2;
-        message = '희귀 보상! SP +2. 특성 창이 갑자기 친절해졌다.';
+        state.sp += 1;
+        state.totalSp += 1;
+        message = '희귀 보상! SP +1. 특성 창이 살짝 친절해졌다.';
       } else if (roll < 7.5) {
         if (grantPermanentClickUpgrade(false)) {
           message = '영구 클릭 강화 +1. 손가락이 전설 장비가 됐다.';
@@ -4048,26 +4055,26 @@
           message = '클릭 강화가 이미 최대라 보석 +2로 환급됐다.';
         }
       } else if (roll < 15.5) {
-        state.gems += 5;
-        message = '보석 +5. 뽑기에서 뽑기값을 이기는 장면은 귀하다.';
+        state.gems += 3;
+        message = '보석 +3. 뽑기에서 뽑기값을 이기는 장면은 귀하다.';
       } else if (roll < 27.5) {
-        addCoins(5000);
-        message = '코인 +' + formatBigAmount(5000) + '. 갑자기 지갑이 서버 이벤트를 받았다.';
+        addCoins(scaledCoinReward);
+        message = '코인 +' + formatBigAmount(scaledCoinReward) + '. 갑자기 지갑이 서버 이벤트를 받았다.';
       } else if (roll < 42.5) {
-        changeStat(randomStat, 1200);
-        message = formatStatName(randomStat) + ' +1200. 스탯창이 잠깐 다른 게임이 됐다.';
+        changeStat(randomStat, scaledStatReward);
+        message = formatStatName(randomStat) + ' +' + scaledStatReward + '. 스탯창이 살짝 다른 게임이 됐다.';
       } else if (roll < 60.5) {
-        gainExp(3000);
-        message = '경험치 +3000. 레벨 게이지가 과로 중이다.';
+        gainExp(scaledExpReward);
+        message = '경험치 +' + scaledExpReward + '. 레벨 게이지가 기분 좋게 움직였다.';
       } else if (roll < 80.5) {
-        changeStat('fame', 300);
+        changeStat('fame', scaledFameReward);
         collectClip('gacha_wallet_cry', { label: '전설 랜덤박스' });
-        message = '명성 +300, 흑역사 클립 수집. 이제 친구들이 이걸 그냥 안 둔다.';
+        message = '명성 +' + scaledFameReward + ', 흑역사 클립 수집. 이제 친구들이 이걸 그냥 안 둔다.';
       } else if (roll < 94.5) {
         changeStat('mood', -50);
-        changeStat('fame', 80);
+        changeStat('fame', 40);
         collectClip('clip_why_not', { label: '전설 랜덤박스' });
-        message = '기분 -50, 명성 +80. 억울하지만 웃겼으니 콘텐츠다.';
+        message = '기분 -50, 명성 +40. 억울하지만 웃겼으니 콘텐츠다.';
       } else {
         state.coins = Math.max(0, state.coins - 1000);
         state.gems += 1;
@@ -4643,6 +4650,11 @@
       return Math.max(0, Math.ceil(remaining / 1000));
     }
 
+    function getChallengeCooldownRemaining() {
+      const remaining = CHALLENGE_COOLDOWN_MS - (Date.now() - (state.lastChallengeAt || 0));
+      return Math.max(0, Math.ceil(remaining / 1000));
+    }
+
     function getDateRewardFactor(streak = state.dateStreak || 0) {
       return Math.max(0.55, 1 - Math.max(0, streak - 1) * 0.15);
     }
@@ -4733,11 +4745,14 @@
     }
 
     function performChallenge() {
-      if (state.energy < 24) { showToast('도전에는 체력 24가 필요합니다.', 'danger'); return; }
-      if (state.focus < 8) { showToast('도전에는 집중 8이 필요합니다.', 'danger'); return; }
+      if (getChallengeCooldownRemaining() > 0) { showToast('도전 대기 ' + getChallengeCooldownRemaining() + '초', 'danger'); return; }
+      if (state.energy < 30) { showToast('도전에는 체력 30이 필요합니다.', 'danger'); return; }
+      if (state.focus < 12) { showToast('도전에는 집중 12가 필요합니다.', 'danger'); return; }
+      if (state.mood < 10) { showToast('도전에는 기분 10이 필요합니다.', 'danger'); return; }
 
-      state.energy -= 24;
-      state.focus -= 8;
+      state.energy -= 30;
+      state.focus -= 12;
+      state.mood -= 10;
       state.challengeCount += 1;
       state.totalActions += 1;
       state.dateStreak = 0;
@@ -4745,21 +4760,22 @@
       const chance = getChallengeChance();
       const success = Math.random() * 100 < chance;
       if (success) {
-        const exp = getActionExp(60 + state.level * 2);
-        const coins = mult(24 + Math.floor(state.fame / 5), 'coin');
+        const exp = getActionExp(42 + state.level);
+        const coins = mult(18 + Math.floor(state.fame / 10), 'coin');
         gainExp(exp);
         addCoins(coins);
-        changeStat('fame', mult(8, 'fame'));
+        changeStat('fame', mult(5, 'fame'));
         showToast('🏆 도전 성공!', 'gold');
         addLog('문주성이 도전에 성공했다. 단톡방이 잠깐 조용해졌다.', 'success');
         burstCharacter();
         spawnParticlesFromCharacter(20);
       } else {
         gainActionExp(10, { levelBonus: false });
-        changeStat('mood', -8);
+        changeStat('mood', -12);
         showToast('도전 실패... 그래도 경험은 남았다.', 'danger');
         addLog('도전은 실패했다. 문주성은 변명보다 경험치를 챙겼다.', 'danger');
       }
+      state.lastChallengeAt = Date.now();
       grantFriendXpForAction('challenge', success ? 2 : 1);
       triggerActionFlavorEvent('challenge');
       maybeBalanceChoiceEvent('challenge');
@@ -4777,7 +4793,7 @@
         getFacilityBonus('challengeChance') * 8 +
         getTitleBonus('challengeChance') * 8;
       const chance = 35 + 55 * (1 - Math.exp(-power / 120));
-      return Math.round(clamp(chance, 35, 90));
+      return Math.round(clamp(chance, 30, 82));
     }
 
     /* ============ ?곸젏 ============ */
@@ -4791,12 +4807,12 @@
     }
 
     const legacyBuffSpecs = {
-      study_chain: { id: 'focus_note_study_room_boost', name: '집중 노트', icon: '📓', type: 'producer', producerId: 'study_room_chain', multiplier: 0.10 },
-      knowledge_output: { id: 'idea_book_knowledge_boost', name: '베스트셀러 책', icon: '📘', type: 'producerCategory', category: 'knowledge', multiplier: 0.10 },
-      click_output: { id: 'training_kit_click_boost', name: '트레이닝 세트', icon: '🏋️', type: 'click', multiplier: 0.10 },
-      social_output: { id: 'magic_scent_social_boost', name: '매력 향수', icon: '🌹', type: 'producerCategory', category: 'social', multiplier: 0.10 },
-      global_output: { id: 'garden_badge_global_producer_boost', name: '명성 배지', icon: '🏅', type: 'globalProducer', multiplier: 0.08 },
-      event_reward: { id: 'lucky_clover_event_reward_boost', name: '행운 클로버', icon: '🍀', type: 'eventReward', multiplier: 0.10 }
+      study_chain: { id: 'focus_note_study_room_boost', name: '집중 노트', icon: '📓', type: 'producer', producerId: 'study_room_chain', multiplier: 0.10, bonuses: { autoExp: 0.10 } },
+      knowledge_output: { id: 'idea_book_knowledge_boost', name: '베스트셀러 책', icon: '📘', type: 'producerCategory', category: 'knowledge', multiplier: 0.08, bonuses: { study: 0.08 } },
+      click_output: { id: 'training_kit_click_boost', name: '트레이닝 세트', icon: '🏋️', type: 'click', multiplier: 0.08, bonuses: { click: 0.08 } },
+      social_output: { id: 'magic_scent_social_boost', name: '매력 향수', icon: '🌹', type: 'producerCategory', category: 'social', multiplier: 0.08, bonuses: { talk: 0.08, charm: 0.08, fame: 0.08 } },
+      global_output: { id: 'garden_badge_global_producer_boost', name: '명성 배지', icon: '🏅', type: 'globalProducer', multiplier: 0.05, bonuses: { global: 0.05 } },
+      event_reward: { id: 'lucky_clover_event_reward_boost', name: '행운 클로버', icon: '🍀', type: 'eventReward', multiplier: 0.08, bonuses: { eventReward: 0.08 } }
     };
 
     function normalizeBuffEntry(buff) {
@@ -4809,7 +4825,8 @@
         producerId: buff.producerId || null,
         category: buff.category || null,
         multiplier: Number(buff.multiplier || 0),
-        expiresAt: Number(buff.expiresAt || 0)
+        expiresAt: Number(buff.expiresAt || 0),
+        bonuses: (buff.bonuses && typeof buff.bonuses === 'object') ? { ...buff.bonuses } : {}
       };
     }
 
@@ -4831,9 +4848,8 @@
 
     function addTimedBuff(buff) {
       ensureBuffState();
-      const now = Date.now();
       const durationMs = Math.max(0, buff.durationMs || 0);
-      const expiresAt = now + durationMs;
+      const maxDurationMs = Math.max(durationMs, buff.maxDurationMs || durationMs * 2);
       const nextBuff = normalizeBuffEntry({
         id: buff.id,
         name: buff.name,
@@ -4842,17 +4858,23 @@
         producerId: buff.producerId || null,
         category: buff.category || null,
         multiplier: Number(buff.multiplier || 0),
-        expiresAt
+        expiresAt: Date.now() + durationMs,
+        bonuses: buff.bonuses || {}
       });
       if (!nextBuff || !nextBuff.id || !nextBuff.type) return;
       const index = state.activeBuffs.findIndex((entry) => entry.id === nextBuff.id);
+      const now = Date.now();
+      const currentRemaining = index >= 0 ? Math.max(0, Number(state.activeBuffs[index].expiresAt || 0) - now) : 0;
+      const nextRemaining = Math.min(maxDurationMs, currentRemaining + durationMs);
+      nextBuff.expiresAt = now + nextRemaining;
       if (index >= 0) {
         const old = state.activeBuffs[index];
         state.activeBuffs[index] = {
           ...old,
           ...nextBuff,
           multiplier: Math.max(Number(old.multiplier || 0), nextBuff.multiplier),
-          expiresAt: Math.max(Number(old.expiresAt || 0), nextBuff.expiresAt)
+          expiresAt: nextBuff.expiresAt,
+          bonuses: { ...(old.bonuses || {}), ...(nextBuff.bonuses || {}) }
         };
       } else {
         state.activeBuffs.push(nextBuff);
@@ -4902,9 +4924,11 @@
     // getConsumableProducerBuffMultiplier({ producerId, category })를 CPS 계산에 곱할 것.
 
     function getBuffBonus(key) {
-      if (key === 'eventReward') return getActiveBuffBonus('eventReward');
-      if (key === 'click') return getActiveBuffBonus('click');
-      return 0;
+      ensureBuffState();
+      return (state.activeBuffs || []).reduce((total, buff) => {
+        const bonuses = buff.bonuses || {};
+        return total + Number(bonuses[key] || 0) + (key !== 'global' ? Number(bonuses.global || 0) : 0);
+      }, 0);
     }
 
     function getBuffMultiplier(key) {
@@ -4975,6 +4999,10 @@
       ensureBuffState();
       const lastUsed = state.shopCooldowns[item.id] || 0;
       return Math.max(0, Math.ceil((item.cooldownMs - (Date.now() - lastUsed)) / 1000));
+    }
+
+    function isShopItemCoolingDown(item) {
+      return getShopCooldownRemaining(item) > 0;
     }
 
     function buyItem(itemId) {
@@ -6777,8 +6805,8 @@
         },
         work: { energy: -12, coins: mult(24, 'coin'), exp: getActionExp(14) },
         talk: { mood: -5, charm: mult(4, 'talk'), fame: mult(2, 'fame'), exp: getActionExp(14) },
-        meditate: { energy: -4, focus: mult(4, 'meditate'), mood: 3, exp: getActionExp(12) },
-        adventure: { energy: -16, coins: mult(18 + Math.floor(state.luck / 4), 'coin'), fame: mult(4, 'fame'), exp: getActionExp(34) },
+        meditate: { energy: -5, focus: mult(3, 'meditate'), mood: 2, exp: getActionExp(8) },
+        adventure: { energy: -16, coins: mult(18 + Math.min(25, Math.floor(state.luck / 6)), 'coin'), fame: mult(4, 'fame'), exp: getActionExp(34) },
         gaming: { mood: mult(14, 'mood'), focus: 2, energy: -8, exp: getActionExp(14) },
         date: {
           coins: -32,
@@ -6790,15 +6818,16 @@
         },
         project: { energy: -14, focus: -5, knowledge: mult(4, 'study'), fame: mult(5, 'fame'), coins: mult(6, 'coin'), exp: getActionExp(32) },
         volunteer: { energy: -10, mood: 6, charm: mult(3, 'talk'), fame: mult(8, 'fame'), exp: getActionExp(24) },
-        pc_bang: { coins: -20, energy: -10, mood: 20, focus: 4, exp: getActionExp(18) },
+        pc_bang: { coins: -28, energy: -12, mood: 16, focus: 3, exp: getActionExp(14) },
         roast_friend: { mood: -12, energy: -4, charm: mult(3, 'talk'), fame: mult(3, 'fame'), exp: getActionExp(9, { levelBonus: false }) },
         penalty_roulette: { coins: -22, energy: -5, mood: -8, exp: getActionExp(6, { levelBonus: false }) },
         challenge: {
-          energy: -24,
-          focus: -8,
-          exp: Math.max(10, Math.round((getActionExp(60 + state.level * 2) * getChallengeChance() + getActionExp(10, { levelBonus: false }) * (100 - getChallengeChance())) / 100)),
-          fame: Math.max(1, Math.round(mult(8, 'fame') * getChallengeChance() / 100)),
-          coins: Math.max(1, Math.round(mult(24 + Math.floor(state.fame / 5), 'coin') * getChallengeChance() / 100))
+          energy: -30,
+          focus: -12,
+          mood: -10,
+          exp: Math.max(10, Math.round((getActionExp(42 + state.level) * getChallengeChance() + getActionExp(10, { levelBonus: false }) * (100 - getChallengeChance())) / 100)),
+          fame: Math.max(1, Math.round(mult(5, 'fame') * getChallengeChance() / 100)),
+          coins: Math.max(1, Math.round(mult(18 + Math.floor(state.fame / 10), 'coin') * getChallengeChance() / 100))
         }
       };
       return effects[actionId] || {};
@@ -6860,16 +6889,16 @@
         rest: getRestCooldownRemaining() > 0 ? '휴식 대기 ' + getRestCooldownRemaining() + '초' : '+큰 회복',
         work: '-12 체력 / +코인',
         talk: '-5 기분',
-        meditate: '-4 체력 / +집중',
+        meditate: '-5 체력 / +집중',
         adventure: '-16 체력 / +코인',
         gaming: '-8 체력',
         date: getDateCooldownRemaining() > 0 ? '데이트 대기 ' + getDateCooldownRemaining() + '초' : '-32 코인 / -10 체력',
         project: '-14 체력 / -5 집중',
         volunteer: '-10 체력',
-        pc_bang: '-20 코인 / -10 체력',
+        pc_bang: '-28 코인 / -12 체력',
         roast_friend: '-12 기분 / -4 체력',
         penalty_roulette: '-22 코인 / 랜덤',
-        challenge: '-24 체력 / -8 집중'
+        challenge: getChallengeCooldownRemaining() > 0 ? '도전 대기 ' + getChallengeCooldownRemaining() + '초' : '-30 체력 / -12 집중'
       };
       return summaries[actionId] || '자세한 변화는 위 패널';
     }
@@ -6880,7 +6909,7 @@
         return '<button class="action-btn" type="button" data-action="' + a.id + '" data-impact-action="' + a.id + '"' + disabled + ' title="' + escapeHtml(a.tip || '') + '">' +
           '<div class="head"><span class="action-title"><span class="icon-circle">' + a.icon + '</span>' + a.name + '</span><span class="action-summary">' + getActionSummary(a.id) + '</span></div></button>';
       }).join('');
-      const challengeDisabled = (state.energy >= 24 && state.focus >= 8) ? '' : ' disabled';
+      const challengeDisabled = (state.energy >= 30 && state.focus >= 12 && state.mood >= 10 && getChallengeCooldownRemaining() <= 0) ? '' : ' disabled';
       const challengeHtml = '<button class="action-btn challenge" type="button" data-challenge data-impact-action="challenge"' + challengeDisabled + '>' +
         '<div class="head"><span class="action-title"><span class="icon-circle">🏆</span>도전하기</span><span class="action-summary">' + getActionSummary('challenge') + '</span></div></button>';
       els.actions.innerHTML = actionsHtml + challengeHtml;
@@ -6896,13 +6925,13 @@
         const lockReason = getShopItemLockReason(item);
         const locked = !!lockReason;
         const cooldownRemaining = getShopCooldownRemaining(item);
-        const isCooldown = cooldownRemaining > 0;
-        const disabled = locked || price === null || getShopCurrencyAmount(getShopItemCurrency(item)) < price || maxed || isCooldown;
+        const coolingDown = isShopItemCoolingDown(item);
+        const disabled = locked || coolingDown || price === null || getShopCurrencyAmount(getShopItemCurrency(item)) < price || maxed;
         const ownedTxt = item.max ? ' · 구매 ' + owned + '/' + item.max + '회' : owned ? ' · 구매 ' + owned + '회' : '';
         const lockTxt = locked ? ' · ' + lockReason : '';
-        const cooldownTxt = isCooldown ? ' · 쿨타임 ' + cooldownRemaining + '초 남음' : '';
+        const cooldownTxt = coolingDown ? ' · 쿨타임 ' + cooldownRemaining + '초 남음' : '';
         const durationTxt = item.cooldownMs && item.desc.includes('초간') ? ' · 버프형' : '';
-        const btnLabel = locked ? '잠김' : maxed ? '최대' : isCooldown ? cooldownRemaining + '초' : '구매';
+        const btnLabel = locked ? '잠김' : maxed ? '최대' : coolingDown ? cooldownRemaining + '초' : '구매';
         return '<div class="row-card">' +
           '<div><div class="meta"><span class="icon-circle">' + item.icon + '</span>' + item.name + '</div>' +
           '<div class="desc">' + formatShopPrice(item) + ' · ' + item.desc + ownedTxt + lockTxt + cooldownTxt + durationTxt + '</div></div>' +
@@ -7606,39 +7635,39 @@
         rest: { name: '휴식하기', icon: '😴', desc: '체력 +45 · 기분 +20 · 경험 +0~3 · 쿨타임 20초', tip: '체력과 기분을 크게 회복합니다. 특성/시설로 쿨타임이 줄어듭니다.' },
         work: { name: '알바하기', icon: '💼', tip: '체력을 써서 코인을 벌어옵니다.' },
         talk: { name: '대화하기', icon: '💬', desc: '기분 -5 · 매력 +4 · 명성 +2 · 경험 +14', tip: '사회성을 기르는 행동입니다.' },
-        meditate: { name: '명상하기', icon: '🧘', tip: '체력을 조금 쓰고 집중을 회복합니다.' },
+        meditate: { name: '명상하기', icon: '🧘', desc: '체력 -5 · 집중 +3 · 기분 +2 · 행운 +1 확률 20% · 경험 +8', tip: '체력을 조금 쓰고 집중을 회복합니다.' },
         adventure: { name: '모험하기', icon: '🧭', desc: '체력 -16 · 코인 +18 · 명성 +4 · 경험 +34', tip: '운과 보상을 노리는 행동입니다.' },
         gaming: { name: '게임하기', icon: '🎮', tip: '기분을 올리고 게임 이벤트를 노립니다.' },
         date: { name: '데이트하기', icon: '💖', desc: '코인 -32 · 체력 -10 · 매력 +4 · 기분 +6 · 명성 +4 · 경험 +16 · 쿨타임 20초', tip: '매력과 명성을 올리는 프리미엄 사회 행동입니다.' },
         project: { name: '프로젝트', icon: '🛠️', desc: '체력 -14 · 집중 -5 · 지식 +4 · 명성 +5 · 코인 +6 · 경험 +32', tip: '지식 기반의 큰 성장 행동입니다.' },
         volunteer: { name: '봉사하기', icon: '🤝', desc: '체력 -10 · 기분 +6 · 매력 +3 · 명성 +8 · 경험 +24', tip: '명성을 안정적으로 올립니다.' },
-        pc_bang: { name: 'PC방 가기', icon: '🖥️', tip: '코인을 쓰고 기분과 집중을 회복합니다.' },
+        pc_bang: { name: 'PC방 가기', icon: '🖥️', desc: '코인 -28 · 체력 -12 · 기분 +16 · 집중 +3 · 경험 +14 · 이벤트 확률 35%', tip: '코인을 쓰고 기분과 집중을 회복합니다.' },
         roast_friend: { name: '친구 놀리기', icon: '😈', desc: '기분 -12 · 체력 -4 · 매력 +3 · 명성 +3 · 경험 +9 · 놀림 이벤트 60%', tip: '기분과 체력을 써서 명성과 웃긴 이벤트를 노립니다.' },
         penalty_roulette: { name: '벌칙 룰렛', icon: '🎲', desc: '코인 -22 · 체력 -5 · 기분 -8 · 행운 +1 확률 30% · 경험 +6 · 벌칙 이벤트 70%', tip: '코인과 컨디션을 쓰고 랜덤 벌칙 이벤트를 노립니다.' }
       });
 
       patchById(shopItems, {
-        energy_snack: { name: '에너지 간식', icon: '🍪', desc: '체력 +30 회복 · 회차당 8회 · 쿨타임 15초' },
-        mood_drink: { name: '기분 음료', icon: '🥤', desc: '기분 +22 회복 · 회차당 8회 · 쿨타임 15초' },
-        focus_note: { name: '집중 노트', icon: '📓', desc: '30초간 공부방 체인 생산량 +10% · 쿨타임 30초' },
-        idea_book: { name: '베스트셀러 책', icon: '📘', desc: '60초간 지식 계열 생산량 +10% · 쿨타임 60초' },
-        training_kit: { name: '트레이닝 세트', icon: '🏋️', desc: '60초간 클릭 보상 +10% · 쿨타임 60초' },
-        magic_scent: { name: '매력 향수', icon: '🌹', desc: '45초간 사회 계열 생산량 +10% · 쿨타임 45초' },
-        garden_badge: { name: '명성 배지', icon: '🏅', desc: '45초간 전체 생산량 +8% · 쿨타임 45초' },
-        lucky_clover: { name: '행운 클로버', icon: '🍀', desc: '60초간 이벤트 보상 +10% · 쿨타임 60초' },
-        auto_growth: { name: '자동 성장 플랜', icon: '⏱️', desc: '1초마다 경험치 +1' },
-        auto_coin: { name: '자동 코인 통장', icon: '🏦', desc: '5초마다 코인 +1' },
-        click_amp: { name: '클릭 증폭기', icon: '👆', desc: '클릭 보상 +1' },
+        energy_snack: { name: '에너지 간식', icon: '🍪', desc: '체력 +28 회복 · 회차당 6회 · 쿨타임 30초' },
+        mood_drink: { name: '기분 음료', icon: '🥤', desc: '기분 +20 회복 · 회차당 6회 · 쿨타임 30초' },
+        focus_note: { name: '집중 노트', icon: '📓', desc: '30초간 자동 경험치 +10% · Lv.8 이후 · 쿨타임 45초' },
+        idea_book: { name: '베스트셀러 책', icon: '📘', desc: '60초간 공부/프로젝트 지식 효율 +8% · Lv.10 이후 · 쿨타임 60초' },
+        training_kit: { name: '트레이닝 세트', icon: '🏋️', desc: '60초간 클릭 보상 +8% · Lv.8 이후 · 쿨타임 60초' },
+        magic_scent: { name: '매력 향수', icon: '🌹', desc: '45초간 사회 계열 효율 +8% · Lv.12 이후 · 쿨타임 60초' },
+        garden_badge: { name: '명성 배지', icon: '🏅', desc: '45초간 전체 행동 효율 +5% · Lv.15 이후 · 쿨타임 90초' },
+        lucky_clover: { name: '행운 클로버', icon: '🍀', desc: '60초간 이벤트 보상 +8% · Lv.15 이후 · 쿨타임 90초' },
+        auto_growth: { name: '자동 성장 플랜', icon: '⏱️', desc: '자동 경험치 효율 +1 · 최대 12단계' },
+        auto_coin: { name: '자동 코인 통장', icon: '🏦', desc: '5초마다 코인 +1 · 최대 20단계' },
+        click_amp: { name: '클릭 증폭기', icon: '👆', desc: '클릭 보상 +1 · 최대 20단계' },
         crit_charm: { name: '치명타 부적', icon: '🎯', desc: '클릭 치명타 확률 +3% (최대 5회)' },
         gem_box: { name: '보석 상자', icon: '💎' },
-        legend_random_box: { name: '전설 랜덤박스', icon: '🎁', desc: '극단 보상/웃긴 페널티가 섞인 보석 가챠' },
+        legend_random_box: { name: '전설 랜덤박스', icon: '🎁', desc: '레벨 25 이후 · 회차당 3회 · 극단 보상과 웃긴 실패가 섞인 보석 가챠' },
         gem_click_upgrade: { name: '영구 클릭 강화', icon: '👆', desc: '클릭 기본 보상 +1 영구 증가' },
         gem_efficiency_upgrade: { name: '영구 효율 강화', icon: '⚡', desc: '모든 기본 행동 효율 +3% 영구 증가' },
         sp_pack: { name: 'SP 구매', icon: '🧬' },
         legendary_aura: { name: '전설의 오라', icon: '🌌', desc: '모든 스탯 +20, 명성 +30, 행운 +5' },
         planner_board: { name: '계획 보드', icon: '📋', desc: '집중 +15, 지식 +10' },
-        mentor_call: { name: '멘토 통화권', icon: '☎️', desc: '명성 +18, 매력 +8, 경험 +30' },
-        rest_room: { name: '회복 라운지', icon: '🛋️', desc: '체력 +60 · 기분 +60' }
+        mentor_call: { name: '멘토 통화권', icon: '☎️', desc: '명성 +8 · 매력 +4 · 경험 +12 · 회차당 4회 · 쿨타임 120초' },
+        rest_room: { name: '회복 라운지', icon: '🛋️', desc: '체력 +50 · 기분 +50 · 회차당 3회 · 쿨타임 90초' }
       });
 
       patchById(skills, {
