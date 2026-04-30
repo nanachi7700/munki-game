@@ -2379,22 +2379,34 @@
     );
 
     const shopItems = [
-      { id: 'energy_snack', name: '에너지 간식', price: 55, priceGrowth: 1.18, icon: '🍪', category: 'consume', shopGroup: 'consumables', desc: '체력 +35 회복', repeatable: true,
-        buy: () => changeStat('energy', 35) },
-      { id: 'mood_drink', name: '기분 음료', price: 60, priceGrowth: 1.18, icon: '🥤', category: 'consume', shopGroup: 'consumables', desc: '기분 +25 회복', repeatable: true,
-        buy: () => changeStat('mood', 25) },
-      { id: 'focus_note', name: '집중 노트', price: 220, priceGrowth: 1.35, unlockLevel: 5, icon: '📓', category: 'consume', shopGroup: 'consumables', desc: '30초간 공부방 체인 생산량 +10% · Lv.5 이후', repeatable: true,
-        buy: () => activateBuff('study_chain') },
-      { id: 'idea_book', name: '베스트셀러 책', price: 260, priceGrowth: 1.35, unlockLevel: 8, icon: '📘', category: 'consume', shopGroup: 'consumables', desc: '60초간 지식 계열 생산량 +10% · Lv.8 이후', repeatable: true,
-        buy: () => activateBuff('knowledge_output') },
-      { id: 'training_kit', name: '트레이닝 세트', price: 240, priceGrowth: 1.35, unlockLevel: 5, icon: '🏋️', category: 'consume', shopGroup: 'consumables', desc: '60초간 클릭 보상 +10% · Lv.5 이후', repeatable: true,
-        buy: () => activateBuff('click_output') },
-      { id: 'magic_scent', name: '매력 향수', price: 320, priceGrowth: 1.4, unlockLevel: 10, icon: '🌹', category: 'consume', shopGroup: 'consumables', desc: '45초간 사회 계열 생산량 +10% · Lv.10 이후', repeatable: true,
-        buy: () => activateBuff('social_output') },
-      { id: 'garden_badge', name: '명성 배지', price: 460, priceGrowth: 1.45, unlockLevel: 12, icon: '🏅', category: 'consume', shopGroup: 'consumables', desc: '45초간 전체 생산량 +8% · Lv.12 이후', repeatable: true,
-        buy: () => activateBuff('global_output') },
-      { id: 'lucky_clover', name: '행운 클로버', price: 520, priceGrowth: 1.45, unlockLevel: 12, icon: '🍀', category: 'consume', shopGroup: 'consumables', desc: '60초간 이벤트 보상 +10% · Lv.12 이후', repeatable: true,
-        buy: () => activateBuff('event_reward') },
+      { id: 'energy_snack', name: '에너지 간식', price: 80, priceGrowth: 1.25, max: 8, cooldownMs: 15000, icon: '🍪', category: 'consume', shopGroup: 'consumables', desc: '체력 +30 회복 · 회차당 8회 · 쿨타임 15초', repeatable: true,
+        buy: () => { changeStat('energy', 30); } },
+      { id: 'mood_drink', name: '기분 음료', price: 75, priceGrowth: 1.25, max: 8, cooldownMs: 15000, icon: '🥤', category: 'consume', shopGroup: 'consumables', desc: '기분 +22 회복 · 회차당 8회 · 쿨타임 15초', repeatable: true,
+        buy: () => { changeStat('mood', 22); } },
+      { id: 'focus_note', name: '집중 노트', price: 120, priceGrowth: 1.35, max: 10, cooldownMs: 30000, icon: '📓', category: 'consume', shopGroup: 'consumables', desc: '30초간 공부방 체인 생산량 +10% · 쿨타임 30초', repeatable: true,
+        buy: () => {
+          addTimedBuff({ id: 'focus_note_study_room_boost', name: '집중 노트', icon: '📓', type: 'producer', producerId: 'study_room_chain', multiplier: 0.10, durationMs: 30000 });
+        } },
+      { id: 'idea_book', name: '베스트셀러 책', price: 180, priceGrowth: 1.4, max: 10, cooldownMs: 60000, icon: '📘', category: 'consume', shopGroup: 'consumables', desc: '60초간 지식 계열 생산량 +10% · 쿨타임 60초', repeatable: true,
+        buy: () => {
+          addTimedBuff({ id: 'idea_book_knowledge_boost', name: '베스트셀러 책', icon: '📘', type: 'producerCategory', category: 'knowledge', multiplier: 0.10, durationMs: 60000 });
+        } },
+      { id: 'training_kit', name: '트레이닝 세트', price: 160, priceGrowth: 1.35, max: 10, cooldownMs: 60000, icon: '🏋️', category: 'consume', shopGroup: 'consumables', desc: '60초간 클릭 보상 +10% · 쿨타임 60초', repeatable: true,
+        buy: () => {
+          addTimedBuff({ id: 'training_kit_click_boost', name: '트레이닝 세트', icon: '🏋️', type: 'click', multiplier: 0.10, durationMs: 60000 });
+        } },
+      { id: 'magic_scent', name: '매력 향수', price: 200, priceGrowth: 1.45, max: 10, cooldownMs: 45000, icon: '🌹', category: 'consume', shopGroup: 'consumables', desc: '45초간 사회 계열 생산량 +10% · 쿨타임 45초', repeatable: true,
+        buy: () => {
+          addTimedBuff({ id: 'magic_scent_social_boost', name: '매력 향수', icon: '🌹', type: 'producerCategory', category: 'social', multiplier: 0.10, durationMs: 45000 });
+        } },
+      { id: 'garden_badge', name: '명성 배지', price: 240, priceGrowth: 1.5, max: 10, cooldownMs: 45000, icon: '🏅', category: 'consume', shopGroup: 'consumables', desc: '45초간 전체 생산량 +8% · 쿨타임 45초', repeatable: true,
+        buy: () => {
+          addTimedBuff({ id: 'garden_badge_global_producer_boost', name: '명성 배지', icon: '🏅', type: 'globalProducer', multiplier: 0.08, durationMs: 45000 });
+        } },
+      { id: 'lucky_clover', name: '행운 클로버', price: 220, priceGrowth: 1.5, max: 10, cooldownMs: 60000, icon: '🍀', category: 'consume', shopGroup: 'consumables', desc: '60초간 이벤트 보상 +10% · 쿨타임 60초', repeatable: true,
+        buy: () => {
+          addTimedBuff({ id: 'lucky_clover_event_reward_boost', name: '행운 클로버', icon: '🍀', type: 'eventReward', multiplier: 0.10, durationMs: 60000 });
+        } },
       { id: 'auto_growth', name: '자동 성장 플랜', price: 120, priceGrowth: 1.4, icon: '⏱️', category: 'upgrade', shopGroup: 'automation', desc: '1초마다 경험치 +1', repeatable: true,
         buy: () => { state.autoExpRate += 1; } },
       { id: 'auto_coin', name: '자동 코인 통장', price: 200, priceGrowth: 1.35, icon: '🏦', category: 'upgrade', shopGroup: 'automation', desc: '5초마다 코인 +1', repeatable: true,
@@ -3766,7 +3778,8 @@
         prestige: 0, sp: 0, totalSp: 0,
         skillRanks: {},
         purchasedItems: {},
-        activeBuffs: {},
+        activeBuffs: [],
+        shopCooldowns: {},
         completedQuests: {},
         completedAchieves: {},
         unlockedTitles: { t_default: true },
@@ -3857,7 +3870,8 @@
       const amount = parseAmountLike(value);
       if (!Number.isFinite(amount)) return '0%';
       const percent = Math.abs(amount) <= 1 ? amount * 100 : amount;
-      return trimFixed(percent, Math.abs(percent) < 10 ? 1 : 0, false) + '%';
+      const sign = percent > 0 ? '+' : '';
+      return sign + trimFixed(percent, Math.abs(percent) < 10 ? 1 : 0, false) + '%';
     }
 
     function getGameEventTotal() {
@@ -4525,7 +4539,7 @@
     }
 
     function applyEventRewardBonus() {
-      const bonus = getFriendBonus('eventReward') + getFacilityBonus('eventReward') + getTitleBonus('eventReward') + getBuffBonus('eventReward');
+      const bonus = getFriendBonus('eventReward') + getFacilityBonus('eventReward') + getTitleBonus('eventReward') + getActiveBuffBonus('eventReward');
       if (bonus <= 0) return;
       gainExp(Math.max(1, Math.round(12 * bonus)));
       addCoins(Math.max(1, Math.round(20 * bonus)));
@@ -4768,40 +4782,121 @@
       return Math.ceil(basePrice * Math.pow(item.priceGrowth, owned));
     }
 
-    const buffSpecs = {
-      study_chain: { name: '공부방 체인', icon: '📓', duration: 30000, bonuses: { autoExp: 0.10 }, desc: '30초간 공부방 체인 생산량 +10%' },
-      knowledge_output: { name: '지식 계열', icon: '📘', duration: 60000, bonuses: { study: 0.10 }, desc: '60초간 지식 계열 생산량 +10%' },
-      click_output: { name: '클릭 보상', icon: '🏋️', duration: 60000, bonuses: { click: 0.10 }, desc: '60초간 클릭 보상 +10%' },
-      social_output: { name: '사회 계열', icon: '🌹', duration: 45000, bonuses: { talk: 0.10, charm: 0.10, fame: 0.10 }, desc: '45초간 사회 계열 생산량 +10%' },
-      global_output: { name: '전체 생산량', icon: '🏅', duration: 45000, bonuses: { global: 0.08 }, desc: '45초간 전체 생산량 +8%' },
-      event_reward: { name: '이벤트 보상', icon: '🍀', duration: 60000, bonuses: { eventReward: 0.10 }, desc: '60초간 이벤트 보상 +10%' }
+    const legacyBuffSpecs = {
+      study_chain: { id: 'focus_note_study_room_boost', name: '집중 노트', icon: '📓', type: 'producer', producerId: 'study_room_chain', multiplier: 0.10 },
+      knowledge_output: { id: 'idea_book_knowledge_boost', name: '베스트셀러 책', icon: '📘', type: 'producerCategory', category: 'knowledge', multiplier: 0.10 },
+      click_output: { id: 'training_kit_click_boost', name: '트레이닝 세트', icon: '🏋️', type: 'click', multiplier: 0.10 },
+      social_output: { id: 'magic_scent_social_boost', name: '매력 향수', icon: '🌹', type: 'producerCategory', category: 'social', multiplier: 0.10 },
+      global_output: { id: 'garden_badge_global_producer_boost', name: '명성 배지', icon: '🏅', type: 'globalProducer', multiplier: 0.08 },
+      event_reward: { id: 'lucky_clover_event_reward_boost', name: '행운 클로버', icon: '🍀', type: 'eventReward', multiplier: 0.10 }
     };
 
-    function ensureBuffState() {
-      if (!state.activeBuffs || typeof state.activeBuffs !== 'object') state.activeBuffs = {};
-      const now = Date.now();
-      Object.keys(state.activeBuffs).forEach((key) => {
-        if (!buffSpecs[key] || typeof state.activeBuffs[key] !== 'number' || state.activeBuffs[key] <= now) delete state.activeBuffs[key];
-      });
+    function normalizeBuffEntry(buff) {
+      if (!buff || typeof buff !== 'object') return null;
+      return {
+        id: String(buff.id || ''),
+        name: String(buff.name || buff.id || '버프'),
+        icon: buff.icon || '✨',
+        type: String(buff.type || ''),
+        producerId: buff.producerId || null,
+        category: buff.category || null,
+        multiplier: Number(buff.multiplier || 0),
+        expiresAt: Number(buff.expiresAt || 0)
+      };
     }
 
-    function activateBuff(buffId) {
-      ensureBuffState();
-      const spec = buffSpecs[buffId];
-      if (!spec) return;
-      const now = Date.now();
-      const base = Math.max(now, state.activeBuffs[buffId] || 0);
-      state.activeBuffs[buffId] = base + spec.duration;
-      addLog(spec.icon + ' ' + spec.name + ' 버프 활성화: ' + spec.desc, 'event');
-      showToast(spec.name + ' 버프 활성화', 'gold');
+    function ensureBuffState() {
+      if (Array.isArray(state.activeBuffs)) {
+        state.activeBuffs = state.activeBuffs.map(normalizeBuffEntry).filter(Boolean);
+      } else if (state.activeBuffs && typeof state.activeBuffs === 'object') {
+        state.activeBuffs = Object.entries(state.activeBuffs).map(([legacyId, expiresAt]) => {
+          const spec = legacyBuffSpecs[legacyId];
+          if (!spec) return null;
+          return normalizeBuffEntry({ ...spec, expiresAt });
+        }).filter(Boolean);
+      } else {
+        state.activeBuffs = [];
+      }
+      if (!state.shopCooldowns || typeof state.shopCooldowns !== 'object' || Array.isArray(state.shopCooldowns)) state.shopCooldowns = {};
+      removeExpiredBuffs();
     }
+
+    function addTimedBuff(buff) {
+      ensureBuffState();
+      const now = Date.now();
+      const durationMs = Math.max(0, buff.durationMs || 0);
+      const expiresAt = now + durationMs;
+      const nextBuff = normalizeBuffEntry({
+        id: buff.id,
+        name: buff.name,
+        icon: buff.icon || '✨',
+        type: buff.type,
+        producerId: buff.producerId || null,
+        category: buff.category || null,
+        multiplier: Number(buff.multiplier || 0),
+        expiresAt
+      });
+      if (!nextBuff || !nextBuff.id || !nextBuff.type) return;
+      const index = state.activeBuffs.findIndex((entry) => entry.id === nextBuff.id);
+      if (index >= 0) {
+        const old = state.activeBuffs[index];
+        state.activeBuffs[index] = {
+          ...old,
+          ...nextBuff,
+          multiplier: Math.max(Number(old.multiplier || 0), nextBuff.multiplier),
+          expiresAt: Math.max(Number(old.expiresAt || 0), nextBuff.expiresAt)
+        };
+      } else {
+        state.activeBuffs.push(nextBuff);
+      }
+      addLog(nextBuff.icon + ' 버프 활성화: ' + nextBuff.name + ' (' + formatPercent(nextBuff.multiplier) + ', ' + Math.ceil(durationMs / 1000) + '초)', 'event');
+      showToast(nextBuff.icon + ' ' + nextBuff.name + ' 활성화', 'violet');
+    }
+
+    function removeExpiredBuffs() {
+      if (!Array.isArray(state.activeBuffs)) {
+        state.activeBuffs = [];
+        return;
+      }
+      const now = Date.now();
+      state.activeBuffs = state.activeBuffs.filter((buff) => Number(buff.expiresAt || 0) > now);
+    }
+
+    function getActiveBuffBonus(type, options = {}) {
+      ensureBuffState();
+      const producerId = options.producerId || null;
+      const category = options.category || null;
+      return (state.activeBuffs || []).reduce((sum, buff) => {
+        if (buff.type !== type) return sum;
+        if (buff.producerId && producerId && buff.producerId !== producerId) return sum;
+        if (buff.producerId && !producerId) return sum;
+        if (buff.category && category && buff.category !== category) return sum;
+        if (buff.category && !category) return sum;
+        return sum + Number(buff.multiplier || 0);
+      }, 0);
+    }
+
+    function getBuffRemainingSeconds(buff) {
+      return Math.max(0, Math.ceil((Number(buff.expiresAt || 0) - Date.now()) / 1000));
+    }
+
+    function getConsumableProducerBuffMultiplier(options = {}) {
+      const producerId = options.producerId || null;
+      const category = options.category || null;
+      let bonus = 0;
+      bonus += getActiveBuffBonus('producer', { producerId });
+      bonus += getActiveBuffBonus('producerCategory', { category });
+      bonus += getActiveBuffBonus('globalProducer');
+      return 1 + bonus;
+    }
+
+    // TODO: producers 시스템 추가 시 producer.category를 지정하고
+    // getConsumableProducerBuffMultiplier({ producerId, category })를 CPS 계산에 곱할 것.
 
     function getBuffBonus(key) {
-      ensureBuffState();
-      return Object.entries(state.activeBuffs).reduce((total, [buffId]) => {
-        const bonuses = buffSpecs[buffId] ? buffSpecs[buffId].bonuses : {};
-        return total + (bonuses[key] || 0) + (key !== 'global' ? (bonuses.global || 0) : 0);
-      }, 0);
+      if (key === 'eventReward') return getActiveBuffBonus('eventReward');
+      if (key === 'click') return getActiveBuffBonus('click');
+      return 0;
     }
 
     function getBuffMultiplier(key) {
@@ -4810,12 +4905,10 @@
 
     function getActiveBuffSummary() {
       ensureBuffState();
-      const now = Date.now();
-      const entries = Object.entries(state.activeBuffs).map(([buffId, expiresAt]) => {
-        const spec = buffSpecs[buffId];
-        return spec ? spec.name + ' ' + Math.max(0, Math.ceil((expiresAt - now) / 1000)) + '초' : '';
-      }).filter(Boolean);
-      return entries.length ? entries.join(' · ') : '없음';
+      if (!state.activeBuffs.length) return '활성 버프 없음';
+      return state.activeBuffs.map((buff) => {
+        return buff.icon + ' ' + buff.name + ' ' + formatPercent(buff.multiplier) + ' · ' + getBuffRemainingSeconds(buff) + '초';
+      }).join(' / ');
     }
 
     function getShopItemCurrency(item) {
@@ -4869,9 +4962,17 @@
       return !!(item.max && owned >= item.max) || getShopItemPrice(item) === null;
     }
 
+    function getShopCooldownRemaining(item) {
+      if (!item.cooldownMs) return 0;
+      ensureBuffState();
+      const lastUsed = state.shopCooldowns[item.id] || 0;
+      return Math.max(0, Math.ceil((item.cooldownMs - (Date.now() - lastUsed)) / 1000));
+    }
+
     function buyItem(itemId) {
       const item = shopItems.find((entry) => entry.id === itemId);
       if (!item) return;
+      ensureBuffState();
       ensureGemState();
       const owned = state.purchasedItems[item.id] || 0;
       const price = getShopItemPrice(item);
@@ -4882,10 +4983,16 @@
       if (price === null) { showToast('이미 최대 구매했습니다.', 'danger'); return; }
       if (getShopCurrencyAmount(currency) < price) { showToast((currency === 'gems' ? '보석' : '코인') + '이 부족합니다.', 'danger'); return; }
       if (!item.repeatable && owned > 0 && !item.max) { showToast('이미 구매했습니다.', 'danger'); return; }
+      const cooldownRemaining = getShopCooldownRemaining(item);
+      if (cooldownRemaining > 0) {
+        showToast(cooldownRemaining + '초 후 다시 사용할 수 있습니다.', 'danger');
+        return;
+      }
 
       payShopItemPrice(currency, price);
       state.purchasedItems[item.id] = owned + 1;
       item.buy();
+      if (item.cooldownMs) state.shopCooldowns[item.id] = Date.now();
       addLog(item.icon + ' ' + item.name + ' 구매 완료.', 'success');
       showToast('구매 완료: ' + item.name, 'violet');
       afterStateChange();
@@ -5209,7 +5316,7 @@
 
       const clickerSkill = skills.find((s) => s.id === 'clicker_god');
       const clickerBonus = (clickerSkill && state.skillRanks.clicker_god) ? state.skillRanks.clicker_god * clickerSkill.clickBonus : 0;
-      const baseGain = Math.max(1, (state.clickPower + clickerBonus + getTitleBonus('clickFlat')) * getBuffMultiplier('click'));
+      const baseGain = Math.max(1, state.clickPower + clickerBonus + getTitleBonus('clickFlat'));
 
       const critChance = clamp(8 + state.critBonus + getFacilityBonus('critChance') + getTitleBonus('critChance') + state.luck * 0.4, 0, 70);
       const isCrit = Math.random() * 100 < critChance;
@@ -5222,6 +5329,10 @@
         expGain = expGain ? Math.max(expGain + 1, Math.round(expGain * 2)) : 0;
         coinGain *= 5;
         state.critCount += 1;
+      }
+      const clickBonus = getActiveBuffBonus('click');
+      if (clickBonus > 0) {
+        coinGain = Math.max(1, Math.round(coinGain * (1 + clickBonus)));
       }
 
       state.clicks += 1;
@@ -6033,7 +6144,8 @@
           completedAchieves: saved.completedAchieves || {},
           unlockedTitles: saved.unlockedTitles || { t_default: true },
           skillRanks: saved.skillRanks || {},
-          activeBuffs: saved.activeBuffs || {},
+          activeBuffs: saved.activeBuffs || [],
+          shopCooldowns: saved.shopCooldowns || {},
           friendXp: saved.friendXp || {},
           friendEventCount: saved.friendEventCount || 0,
           builtFacilities: saved.builtFacilities || {},
@@ -6071,7 +6183,10 @@
         ensureClipState();
         ensureLeaderboardState();
         ensureActionBalanceState();
+        if (!Array.isArray(state.activeBuffs) && (!state.activeBuffs || typeof state.activeBuffs !== 'object')) state.activeBuffs = [];
+        if (!state.shopCooldowns || typeof state.shopCooldowns !== 'object') state.shopCooldowns = {};
         ensureBuffState();
+        removeExpiredBuffs();
         if (migrating) {
           addLog('이전 저장 데이터를 새 버전으로 이전했습니다.', 'event');
         } else {
@@ -6101,6 +6216,7 @@
 
     function gameTick() {
       ensureBuffState();
+      removeExpiredBuffs();
       const autoExp = getAutoExpPerSecond();
       if (autoExp > 0) gainExp(autoExp);
       const autoCoin = getAutoCoinsPerFiveSeconds();
@@ -6588,7 +6704,7 @@
       const coinsPerFiveSeconds = getAutoCoinsPerFiveSeconds();
       const clickerSkill = skills.find((s) => s.id === 'clicker_god');
       const clickerBonus = (clickerSkill && state.skillRanks.clicker_god) ? state.skillRanks.clicker_god * clickerSkill.clickBonus : 0;
-      const clickBase = Math.round(((state.clickPower || 1) + clickerBonus + getTitleBonus('clickFlat')) * getBuffMultiplier('click') * 10) / 10;
+      const clickBase = Math.round(((state.clickPower || 1) + clickerBonus + getTitleBonus('clickFlat')) * 10) / 10;
       const critChance = clamp(8 + state.critBonus + getFacilityBonus('critChance') + getTitleBonus('critChance') + state.luck * 0.4, 0, 70);
       const prestigeReward = getPrestigeReward();
       const rows = [
@@ -6770,13 +6886,17 @@
         const price = getShopItemPrice(item);
         const lockReason = getShopItemLockReason(item);
         const locked = !!lockReason;
-        const disabled = locked || price === null || getShopCurrencyAmount(getShopItemCurrency(item)) < price || maxed;
-        const ownedTxt = owned ? ' · 구매 ' + owned + (item.max ? '/' + item.max : '') + '회' : '';
+        const cooldownRemaining = getShopCooldownRemaining(item);
+        const isCooldown = cooldownRemaining > 0;
+        const disabled = locked || price === null || getShopCurrencyAmount(getShopItemCurrency(item)) < price || maxed || isCooldown;
+        const ownedTxt = item.max ? ' · 구매 ' + owned + '/' + item.max + '회' : owned ? ' · 구매 ' + owned + '회' : '';
         const lockTxt = locked ? ' · ' + lockReason : '';
-        const btnLabel = locked ? '잠김' : maxed ? '최대' : '구매';
+        const cooldownTxt = isCooldown ? ' · 쿨타임 ' + cooldownRemaining + '초 남음' : '';
+        const durationTxt = item.cooldownMs && item.desc.includes('초간') ? ' · 버프형' : '';
+        const btnLabel = locked ? '잠김' : maxed ? '최대' : isCooldown ? cooldownRemaining + '초' : '구매';
         return '<div class="row-card">' +
           '<div><div class="meta"><span class="icon-circle">' + item.icon + '</span>' + item.name + '</div>' +
-          '<div class="desc">' + formatShopPrice(item) + ' · ' + item.desc + ownedTxt + lockTxt + '</div></div>' +
+          '<div class="desc">' + formatShopPrice(item) + ' · ' + item.desc + ownedTxt + lockTxt + cooldownTxt + durationTxt + '</div></div>' +
           '<button class="small-btn ' + (getShopItemGroup(item) === 'legendary' ? 'gold' : '') + '" type="button" data-buy="' + item.id + '"' + (disabled ? ' disabled' : '') + '>' + btnLabel + '</button>' +
           '</div>';
       }).join('') || '<div class="empty-state">표시할 항목이 없다.</div>';
@@ -7470,14 +7590,14 @@
       });
 
       patchById(shopItems, {
-        energy_snack: { name: '에너지 간식', icon: '🍪', desc: '체력 +35 회복' },
-        mood_drink: { name: '기분 음료', icon: '🥤', desc: '기분 +25 회복' },
-        focus_note: { name: '집중 노트', icon: '📓', desc: '30초간 공부방 체인 생산량 +10% · Lv.5 이후' },
-        idea_book: { name: '베스트셀러 책', icon: '📘', desc: '60초간 지식 계열 생산량 +10% · Lv.8 이후' },
-        training_kit: { name: '트레이닝 세트', icon: '🏋️', desc: '60초간 클릭 보상 +10% · Lv.5 이후' },
-        magic_scent: { name: '매력 향수', icon: '🌹', desc: '45초간 사회 계열 생산량 +10% · Lv.10 이후' },
-        garden_badge: { name: '명성 배지', icon: '🏅', desc: '45초간 전체 생산량 +8% · Lv.12 이후' },
-        lucky_clover: { name: '행운 클로버', icon: '🍀', desc: '60초간 이벤트 보상 +10% · Lv.12 이후' },
+        energy_snack: { name: '에너지 간식', icon: '🍪', desc: '체력 +30 회복 · 회차당 8회 · 쿨타임 15초' },
+        mood_drink: { name: '기분 음료', icon: '🥤', desc: '기분 +22 회복 · 회차당 8회 · 쿨타임 15초' },
+        focus_note: { name: '집중 노트', icon: '📓', desc: '30초간 공부방 체인 생산량 +10% · 쿨타임 30초' },
+        idea_book: { name: '베스트셀러 책', icon: '📘', desc: '60초간 지식 계열 생산량 +10% · 쿨타임 60초' },
+        training_kit: { name: '트레이닝 세트', icon: '🏋️', desc: '60초간 클릭 보상 +10% · 쿨타임 60초' },
+        magic_scent: { name: '매력 향수', icon: '🌹', desc: '45초간 사회 계열 생산량 +10% · 쿨타임 45초' },
+        garden_badge: { name: '명성 배지', icon: '🏅', desc: '45초간 전체 생산량 +8% · 쿨타임 45초' },
+        lucky_clover: { name: '행운 클로버', icon: '🍀', desc: '60초간 이벤트 보상 +10% · 쿨타임 60초' },
         auto_growth: { name: '자동 성장 플랜', icon: '⏱️', desc: '1초마다 경험치 +1' },
         auto_coin: { name: '자동 코인 통장', icon: '🏦', desc: '5초마다 코인 +1' },
         click_amp: { name: '클릭 증폭기', icon: '👆', desc: '클릭 보상 +1' },
