@@ -2782,20 +2782,99 @@
       { type: 'sweet_growth', label: '성장 결정', icon: '💠', weight: 1 }
     ];
 
+    function makeUpgradeEffect(key, value) {
+      const effect = {};
+      effect[key] = value;
+      return effect;
+    }
+
+    function createProducerFlavorUpgrades(producer) {
+      const producerKey = 'producer_' + producer.id;
+      const categoryKey = 'producerCategory_' + producer.category;
+      const outputKeys = Object.keys(producer.outputs || {}).filter((key) => !['friendChance','eventReward','globalProduction','raidTickets','crystalChance'].includes(key));
+      const mainOutput = outputKeys[0] || 'globalProduction';
+      const mainOutputKey = 'producer_' + mainOutput;
+      const priceBase = Math.max(80, producer.baseCost);
+      return [
+        {
+          id: 'producer_' + producer.id + '_10',
+          name: producer.name + ' 입문 교본',
+          icon: producer.icon,
+          price: Math.ceil(priceBase * 18),
+          type: 'producer',
+          desc: producer.name + ' 출력 +12%',
+          unlockHint: producer.name + ' 10개',
+          unlock: () => getProducerOwned(producer.id) >= 10,
+          effect: makeUpgradeEffect(producerKey, 0.12)
+        },
+        {
+          id: 'producer_' + producer.id + '_25',
+          name: producer.name + ' 운영 매뉴얼',
+          icon: producer.icon,
+          price: Math.ceil(priceBase * 70),
+          type: 'producer',
+          desc: getProducerCategoryLabel(producer.category) + ' 계열 생산 +4%',
+          unlockHint: producer.name + ' 25개',
+          unlock: () => getProducerOwned(producer.id) >= 25,
+          effect: makeUpgradeEffect(categoryKey, 0.04)
+        },
+        {
+          id: 'producer_' + producer.id + '_50',
+          name: producer.name + ' 자동화 모듈',
+          icon: producer.icon,
+          price: Math.ceil(priceBase * 260),
+          type: 'producer',
+          desc: producer.name + ' 출력 +18%, 주 생산 +3%',
+          unlockHint: producer.name + ' 50개',
+          unlock: () => getProducerOwned(producer.id) >= 50,
+          effect: { ...makeUpgradeEffect(producerKey, 0.18), [mainOutputKey]: 0.03 }
+        },
+        {
+          id: 'producer_' + producer.id + '_100',
+          name: producer.name + ' 전용 라인',
+          icon: producer.icon,
+          price: Math.ceil(priceBase * 900),
+          type: 'producer',
+          desc: producer.name + ' 출력 +25%',
+          unlockHint: producer.name + ' 100개',
+          unlock: () => getProducerOwned(producer.id) >= 100,
+          effect: makeUpgradeEffect(producerKey, 0.25)
+        }
+      ];
+    }
+
+    const PRODUCER_SPECIAL_UPGRADES = PRODUCERS.flatMap(createProducerFlavorUpgrades);
+
     const UPGRADES = [
       { id: 'reinforced_finger', name: '강화 손가락', icon: '👆', price: 300, type: 'click', desc: '클릭 보상 +20%', unlock: () => state.clicks >= 50, effect: { clickMultiplier: 0.20 } },
       { id: 'golden_finger_training', name: '황금 손맛 훈련', icon: '✨', price: 3000, type: 'click', desc: '클릭 광란 중 수동 클릭 보상 +25%', unlock: () => (state.goldenEventStats && state.goldenEventStats.clicked || 0) >= 3, effect: { manualClickMultiplier: 0.25 } },
+      { id: 'cps_click_link', name: '생산 연동 클릭', icon: '🪙', price: 15000, type: 'click', desc: '수동 클릭마다 현재 코인/s의 0.03초분 추가', unlock: () => getTotalProducerOwned() >= 40, effect: { clickCpsSeconds: 0.03 } },
+      { id: 'factory_click_loop', name: '공장 손맛 루프', icon: '🏭', price: 180000, type: 'click', desc: '수동 클릭마다 현재 코인/s의 0.05초분 추가', unlock: () => getTotalProducerOwned() >= 180, effect: { clickCpsSeconds: 0.05 } },
+      { id: 'cursor_click_sync', name: '커서 손맛 동기화', icon: '🖱️', price: 65000, type: 'autoClick', desc: '문키 커서 보유 수가 클릭 보상에 소량 반영됩니다.', unlock: () => getProducerOwned('cursor_helper') >= 50, effect: { cursorClickCpsPerOwned: 0.00018 } },
+      { id: 'cursor_late_game_loop', name: '후반 커서 루프', icon: '🖱️', price: 900000, type: 'autoClick', desc: '자동 클릭 속도 +35%, 자동 클릭 효율 +10%', unlock: () => getProducerOwned('cursor_helper') >= 200, effect: { autoClickRate: 0.35, autoClickEfficiency: 0.10 } },
       { id: 'cursor_training', name: '커서 훈련법', icon: '🖱️', price: 500, type: 'autoClick', desc: '자동 클릭 효율 +15%', unlock: () => getProducerOwned('cursor_helper') >= 10, effect: { autoClickEfficiency: 0.15 } },
       { id: 'cursor_factory_sync', name: '커서 공장 동기화', icon: '🖱️', price: 12000, type: 'autoClick', desc: '자동 클릭 속도 +20%', unlock: () => getProducerOwned('cursor_helper') >= 25, effect: { autoClickRate: 0.20 } },
+      { id: 'small_fan_sticker', name: '작은 팬 스티커', icon: '🐱', price: 1500, type: 'fan', desc: '팬심 기반 생산 보너스 소폭 해금', unlock: () => getAchievementCount() >= 5, effect: { fanMultiplier: 0.05 } },
       { id: 'fan_club_badge', name: '팬클럽 배지', icon: '🐱', price: 5000, type: 'fan', desc: '팬심이 전체 생산에 영향을 주기 시작합니다.', unlock: () => getAchievementCount() >= 10, effect: { fanMultiplier: 0.10 } },
+      { id: 'group_chat_fandom', name: '단톡방 팬덤 인증', icon: '🐱', price: 18000, type: 'fan', desc: '팬심 기반 전체 생산 보너스 강화', unlock: () => getAchievementCount() >= 18, effect: { fanMultiplier: 0.12 } },
       { id: 'viral_fanclub', name: '바이럴 팬클럽', icon: '🐱', price: 50000, type: 'fan', desc: '팬심 기반 전체 생산 보너스 강화', unlock: () => getAchievementCount() >= 25, effect: { fanMultiplier: 0.25 } },
+      { id: 'meme_fandom_drive', name: '밈 팬덤 드라이브', icon: '🐱', price: 160000, type: 'fan', desc: '팬심 기반 전체 생산 보너스 강화', unlock: () => getAchievementCount() >= 40, effect: { fanMultiplier: 0.22 } },
+      { id: 'legend_fandom_union', name: '전설 팬덤 연합', icon: '🐱', price: 600000, type: 'fan', desc: '팬심 기반 전체 생산 보너스 강화', unlock: () => getAchievementCount() >= 60, effect: { fanMultiplier: 0.28 } },
+      { id: 'mythic_fandom_council', name: '신화 팬심 위원회', icon: '🐱', price: 2200000, type: 'fan', desc: '팬심 기반 전체 생산 보너스 최종 강화', unlock: () => getAchievementCount() >= 85, effect: { fanMultiplier: 0.35 } },
       { id: 'synergy_study_project', name: '공부방 자동화', icon: '📚', price: 25000, type: 'synergy', desc: '자동 필기 봇이 프로젝트 스튜디오 1개당 +1% 강해집니다.', unlock: () => getProducerOwned('study_note_bot') >= 25 && getProducerOwned('project_studio') >= 5, effect: { synergy: 1 } },
       { id: 'synergy_work_convenience', name: '알바-편의점 물류망', icon: '🏪', price: 40000, type: 'synergy', desc: '알바 크루와 편의점 체인의 코인 생산 +15%', unlock: () => getProducerOwned('part_time_crew') >= 25 && getProducerOwned('convenience_chain') >= 10, effect: { synergy: 1 } },
       { id: 'synergy_pc_meme', name: 'PC방 밈 송출', icon: '🖥️', price: 90000, type: 'synergy', desc: 'PC방 지점 코인 +10%, 밈 공장 명성 +10%', unlock: () => getProducerOwned('pc_bang_branch') >= 20 && getProducerOwned('meme_factory') >= 5, effect: { synergy: 1 } },
       { id: 'synergy_chat_meme', name: '단톡방 알고리즘', icon: '📡', price: 160000, type: 'synergy', desc: '사회 계열 생산자 +15%, 도감 발견 보정 +5%', unlock: () => getProducerOwned('talk_room_server') >= 25 && getProducerOwned('meme_factory') >= 10, effect: { clipDiscovery: 0.05 } },
       { id: 'synergy_lab_all', name: '전설 연구 네트워크', icon: '🌌', price: 550000, type: 'synergy', desc: '전체 생산 +10%', unlock: () => getProducerOwned('legend_lab') >= 10 && getTotalProducerOwned() >= 300, effect: { globalProduction: 0.10 } },
+      { id: 'synergy_cursor_lab', name: '커서 연구 네트워크', icon: '🖱️', price: 750000, type: 'synergy', desc: '문키 커서와 전설 연구소가 서로 강화되어 자동 클릭 +25%', unlock: () => getProducerOwned('cursor_helper') >= 150 && getProducerOwned('legend_lab') >= 5, effect: { autoClickRate: 0.25, producer_cursor_helper: 0.10 } },
+      { id: 'synergy_space_everything', name: '문키 우주 물류망', icon: '🚀', price: 3500000, type: 'synergy', desc: '생산자 총합 500개 이후 전체 생산 +12%', unlock: () => getProducerOwned('munki_space_center') >= 5 && getTotalProducerOwned() >= 500, effect: { globalProduction: 0.12 } },
       { id: 'golden_sense_upgrade', name: '황금 감각', icon: '✨', price: 120000, type: 'golden', desc: '황금 이벤트 보상 +10%', unlock: () => (state.goldenEventStats && state.goldenEventStats.clicked || 0) >= 10, effect: { goldenReward: 0.10 } },
-      { id: 'crystal_harvest_manual', name: '결정 채집 노트', icon: '💠', price: 250000, type: 'crystal', desc: '성장 결정 성장 시간 -5%', unlock: () => !!state.growthCrystalUnlocked, effect: { crystalSpeed: 0.05 } }
+      { id: 'golden_combo_license', name: '황금 콤보 라이선스', icon: '✨', price: 650000, type: 'golden', desc: '황금 이벤트 보상 +15%, 클릭 광란 수동 클릭 +20%', unlock: () => (state.goldenEventStats && state.goldenEventStats.clicked || 0) >= 25, effect: { goldenReward: 0.15, manualClickMultiplier: 0.20 } },
+      { id: 'crystal_harvest_manual', name: '결정 채집 노트', icon: '💠', price: 250000, type: 'crystal', desc: '성장 결정 성장 시간 -5%', unlock: () => !!state.growthCrystalUnlocked, effect: { crystalSpeed: 0.05 } },
+      { id: 'crystal_polish_tools', name: '결정 연마 도구', icon: '💠', price: 750000, type: 'crystal', desc: '생산자 성장 결정 레벨 효율 +0.5%p', unlock: () => getTotalProducerLevel() >= 2, effect: { producerLevelBonus: 0.005 } },
+      { id: 'crystal_facility_matrix', name: '시설 결정 매트릭스', icon: '💠', price: 1200000, type: 'crystal', desc: '시설 성장 결정 레벨 효율 +1%p', unlock: () => getTotalFacilityLevel() >= 2, effect: { facilityLevelBonus: 0.01 } },
+      { id: 'crystal_refraction', name: '성장 결정 굴절', icon: '💠', price: 1800000, type: 'crystal', desc: '전체 생산 +5%, 황금 이벤트 보상 +10%', unlock: () => (state.growthCrystals || 0) >= 3 || getTotalProducerLevel() >= 5, effect: { globalProduction: 0.05, goldenReward: 0.10 } },
+      ...PRODUCER_SPECIAL_UPGRADES
     ];
 
     const SEASON_EVENTS = [
@@ -4557,6 +4636,8 @@
         raidResults: {},
         raidClearCount: 0,
         raidFailCount: 0,
+        raidProducerMastery: {},
+        raidCrystalBonus: 0,
         gemUpgrades: { permanentClick: 0, permanentEfficiency: 0 },
         legendBoxOpened: 0,
         clipCollection: {},
@@ -4808,6 +4889,8 @@
       if (!state.raidResults || typeof state.raidResults !== 'object') state.raidResults = {};
       if (typeof state.raidClearCount !== 'number') state.raidClearCount = 0;
       if (typeof state.raidFailCount !== 'number') state.raidFailCount = 0;
+      if (!state.raidProducerMastery || typeof state.raidProducerMastery !== 'object' || Array.isArray(state.raidProducerMastery)) state.raidProducerMastery = {};
+      if (typeof state.raidCrystalBonus !== 'number' || !Number.isFinite(state.raidCrystalBonus)) state.raidCrystalBonus = 0;
     }
 
     function ensureClipState() {
@@ -5120,7 +5203,7 @@
       const type = getRaidType(raid);
       const boostBonus = Math.min(8, ((state.raidBoosts && state.raidBoosts[type]) || 0) * 5);
       const managerBonus = (state.raidPrepManagerLevel || 0) * 1;
-      return clamp(raid.baseChance + excessBonus + luckBonus + getTitleBonus('raidChance') + boostBonus + managerBonus, 35, 85);
+      return clamp(raid.baseChance + excessBonus + luckBonus + getTitleBonus('raidChance') + getAscensionUpgradeBonus('raidChance') + boostBonus + managerBonus, 35, 85);
     }
 
     function getRaidType(raid) {
@@ -5132,6 +5215,46 @@
       if (text.includes('chat') || text.includes('단톡')) return 'chat';
       if (text.includes('pc') || text.includes('pc방')) return 'pc';
       return 'general';
+    }
+
+    function getRaidMasteryKey(type) {
+      return {
+        exam: 'producer_knowledge',
+        gym: 'producer_fitness',
+        date: 'producer_social',
+        rank: 'producer_exp',
+        chat: 'producer_social',
+        pc: 'producer_coins',
+        general: 'globalProduction'
+      }[type] || 'globalProduction';
+    }
+
+    function grantRaidMastery(raid) {
+      ensureRaidState();
+      const type = getRaidType(raid);
+      const key = getRaidMasteryKey(type);
+      const current = Number(state.raidProducerMastery[key] || 0);
+      state.raidProducerMastery[key] = Math.min(key === 'globalProduction' ? 0.08 : 0.18, current + 0.012);
+      if ((state.raidClearCount || 0) > 0 && state.raidClearCount % 4 === 0) {
+        state.raidCrystalBonus = Math.min(0.12, (state.raidCrystalBonus || 0) + 0.01);
+      }
+      if (state.growthCrystalUnlocked && state.raidClearCount > 0 && state.raidClearCount % 6 === 0) {
+        state.growthCrystals += 1;
+        addLog('💠 레이드 누적 성공 보너스: 성장 결정 +1', 'success');
+      }
+      addLog('🐉 레이드 숙련 보너스 누적: ' + getRaidTypeLabel(type) + ' 계열 생산 강화', 'success');
+    }
+
+    function getRaidProducerBonus(producer, outputKey) {
+      ensureRaidState();
+      let bonus = 0;
+      if (producer.category === 'knowledge' || outputKey === 'knowledge') bonus += Number(state.raidProducerMastery.producer_knowledge || 0);
+      if (producer.category === 'fitness' || outputKey === 'fitness') bonus += Number(state.raidProducerMastery.producer_fitness || 0);
+      if (producer.category === 'social' || outputKey === 'fame' || outputKey === 'charm') bonus += Number(state.raidProducerMastery.producer_social || 0);
+      if (producer.category === 'coin' || outputKey === 'coins') bonus += Number(state.raidProducerMastery.producer_coins || 0);
+      if (outputKey === 'exp') bonus += Number(state.raidProducerMastery.producer_exp || 0);
+      bonus += Number(state.raidProducerMastery.globalProduction || 0);
+      return bonus;
     }
 
     function consumeRaidBoost(raid) {
@@ -5202,6 +5325,7 @@
         state.raidClearCount += 1;
         state.permanentProductionBonus = (state.permanentProductionBonus || 0) + 0.01;
         state.goldenRewardBonus = (state.goldenRewardBonus || 0) + 0.01;
+        grantRaidMastery(raid);
         addLog('🐉 레이드 성공 [' + raid.name + '] ' + cleanEventMessage(reward.log, '문주성이 레이드를 멋지게 넘겼다.'), 'success');
         showToast('🐉 ' + raid.name + ' 레이드 성공!', 'gold');
       } else {
@@ -5375,6 +5499,7 @@
         click: '클릭',
         autoClick: '자동 클릭',
         fan: '팬심',
+        producer: '생산자',
         synergy: '시너지',
         golden: '황금 이벤트',
         crystal: '성장 결정'
@@ -5384,20 +5509,36 @@
     function getUpgradeUnlockText(upgrade) {
       if (isUpgradePurchased(upgrade.id)) return '구매 완료';
       if (canUnlockUpgrade(upgrade)) return '구매 가능';
+      if (upgrade.unlockHint) return upgrade.unlockHint;
       const hints = {
         reinforced_finger: '수동 클릭 50회',
         golden_finger_training: '황금 이벤트 3회 클릭',
+        cps_click_link: '생산자 총합 40개',
+        factory_click_loop: '생산자 총합 180개',
+        cursor_click_sync: '문키 커서 50개',
+        cursor_late_game_loop: '문키 커서 200개',
         cursor_training: '문키 커서 10개',
         cursor_factory_sync: '문키 커서 25개',
+        small_fan_sticker: '업적 5개',
         fan_club_badge: '업적 10개',
+        group_chat_fandom: '업적 18개',
         viral_fanclub: '업적 25개',
+        meme_fandom_drive: '업적 40개',
+        legend_fandom_union: '업적 60개',
+        mythic_fandom_council: '업적 85개',
         synergy_study_project: '자동 필기 봇 25개 + 프로젝트 스튜디오 5개',
         synergy_work_convenience: '알바 크루 25개 + 편의점 체인 10개',
         synergy_pc_meme: 'PC방 지점 20개 + 밈 공장 5개',
         synergy_chat_meme: '단톡방 서버 25개 + 밈 공장 10개',
         synergy_lab_all: '전설 연구소 10개 + 생산자 총합 300개',
+        synergy_cursor_lab: '문키 커서 150개 + 전설 연구소 5개',
+        synergy_space_everything: '문키 우주센터 5개 + 생산자 총합 500개',
         golden_sense_upgrade: '황금 이벤트 10회 클릭',
-        crystal_harvest_manual: '성장 결정 해금'
+        golden_combo_license: '황금 이벤트 25회 클릭',
+        crystal_harvest_manual: '성장 결정 해금',
+        crystal_polish_tools: '생산자 결정 레벨 총합 2',
+        crystal_facility_matrix: '시설 결정 레벨 총합 2',
+        crystal_refraction: '성장 결정 3개 또는 생산자 결정 레벨 총합 5'
       };
       return hints[upgrade.id] || '조건 미달';
     }
@@ -5463,11 +5604,24 @@
     function getAutoClickRate() {
       const rates = getProductionRates();
       const base = Number(rates.autoClicks || 0);
-      return base * (1 + getUpgradeBonus('autoClickRate'));
+      return base * (1 + getUpgradeBonus('autoClickRate') + getAscensionUpgradeBonus('autoClickRate'));
     }
 
     function getAutoClickEfficiency() {
-      return clamp((state.autoClickEfficiency || 0.35) + getUpgradeBonus('autoClickEfficiency'), 0.1, 0.85);
+      return clamp((state.autoClickEfficiency || 0.35) + getUpgradeBonus('autoClickEfficiency') + getAscensionUpgradeBonus('autoClickEfficiency'), 0.1, 0.85);
+    }
+
+    function getCursorClickCpsSeconds() {
+      const perCursor = getUpgradeBonus('cursorClickCpsPerOwned') + getAscensionUpgradeBonus('cursorClickCpsPerOwned');
+      return Math.min(0.08, Math.max(0, getProducerOwned('cursor_helper') * perCursor));
+    }
+
+    function getManualClickCpsSeconds() {
+      return Math.min(0.16, Math.max(0, getUpgradeBonus('clickCpsSeconds') + getAscensionUpgradeBonus('clickCpsSeconds') + getCursorClickCpsSeconds()));
+    }
+
+    function getAutoClickCpsSeconds() {
+      return Math.min(0.05, getManualClickCpsSeconds() * 0.35);
     }
 
     function ensureGrowthCrystalState() {
@@ -5488,7 +5642,8 @@
     }
 
     function getGrowthCrystalDurationMs() {
-      const speed = clamp(getUpgradeBonus('crystalSpeed') + getAscensionUpgradeBonus('crystalSpeed') + getBuffBonus('crystalSpeed'), 0, 0.5);
+      ensureRaidState();
+      const speed = clamp(getUpgradeBonus('crystalSpeed') + getAscensionUpgradeBonus('crystalSpeed') + getBuffBonus('crystalSpeed') + (state.raidCrystalBonus || 0), 0, 0.5);
       return Math.max(30 * 60 * 1000, Math.round(2 * 60 * 60 * 1000 * (1 - speed)));
     }
 
@@ -5525,12 +5680,24 @@
 
     function getProducerLevelBonus(producerId) {
       ensureGrowthCrystalState();
-      return Math.max(0, Number(state.producerLevels[producerId] || 0)) * 0.015;
+      const perLevel = 0.015 + getUpgradeBonus('producerLevelBonus') + getAscensionUpgradeBonus('producerLevelBonus');
+      return Math.max(0, Number(state.producerLevels[producerId] || 0)) * perLevel;
     }
 
     function getFacilityLevelBonus(facilityId) {
       ensureGrowthCrystalState();
-      return Math.max(0, Number(state.facilityLevels[facilityId] || 0)) * 0.05;
+      const perLevel = 0.05 + getUpgradeBonus('facilityLevelBonus') + getAscensionUpgradeBonus('facilityLevelBonus');
+      return Math.max(0, Number(state.facilityLevels[facilityId] || 0)) * perLevel;
+    }
+
+    function getTotalProducerLevel() {
+      ensureGrowthCrystalState();
+      return PRODUCERS.reduce((sum, producer) => sum + Math.max(0, Number(state.producerLevels[producer.id] || 0)), 0);
+    }
+
+    function getTotalFacilityLevel() {
+      ensureGrowthCrystalState();
+      return facilities.reduce((sum, facility) => sum + Math.max(0, Number(state.facilityLevels[facility.id] || 0)), 0);
     }
 
     function getCrystalLevelCost(currentLevel) {
@@ -5580,9 +5747,21 @@
     const ASCENSION_UPGRADES = [
       { id: 'legend_first_step', name: '전설의 첫 발자국', icon: '🌟', cost: 1, desc: '전체 생산 +5%', effect: { globalProduction: 0.05 } },
       { id: 'remembered_click', name: '기억나는 손맛', icon: '👆', cost: 2, desc: '클릭 보상 +10%', effect: { clickMultiplier: 0.10 } },
+      { id: 'cursor_blueprint', name: '커서 설계도', icon: '🖱️', cost: 3, desc: '자동 클릭 속도 +15%', effect: { autoClickRate: 0.15 } },
+      { id: 'cps_click_memory', name: '생산 손맛 기억', icon: '🪙', cost: 3, desc: '수동 클릭마다 현재 코인/s의 0.02초분 추가', effect: { clickCpsSeconds: 0.02 } },
       { id: 'golden_instinct', name: '황금 감각', icon: '✨', cost: 4, desc: '황금 이벤트 보상 +10%', effect: { goldenReward: 0.10 } },
       { id: 'fan_inheritance', name: '팬심 계승', icon: '🐱', cost: 5, desc: '팬심 보너스 +10%', effect: { fanMultiplier: 0.10 } },
-      { id: 'crystal_research', name: '성장 결정 연구', icon: '💠', cost: 8, desc: '성장 결정 성장 시간 -10%', effect: { crystalSpeed: 0.10 } }
+      { id: 'auto_click_memory', name: '자동 손맛 기억', icon: '🖱️', cost: 6, desc: '자동 클릭 효율 +8%', effect: { autoClickEfficiency: 0.08 } },
+      { id: 'raid_tactics', name: '레이드 전술서', icon: '🐉', cost: 6, desc: '레이드 성공률 +3%p', effect: { raidChance: 3 } },
+      { id: 'facility_blueprint', name: '시설 설계도 보관함', icon: '🏠', cost: 7, desc: '시설 결정 레벨 효율 +1%p', effect: { facilityLevelBonus: 0.01 } },
+      { id: 'crystal_research', name: '성장 결정 연구', icon: '💠', cost: 8, desc: '성장 결정 성장 시간 -10%', effect: { crystalSpeed: 0.10 } },
+      { id: 'producer_level_memory', name: '생산자 레벨 기억', icon: '🏭', cost: 9, desc: '생산자 결정 레벨 효율 +0.5%p', effect: { producerLevelBonus: 0.005 } },
+      { id: 'golden_interval_training', name: '황금 대기 감각', icon: '✨', cost: 10, desc: '황금 이벤트 등장 간격 소폭 감소', effect: { goldenIntervalReduction: 0.05 } },
+      { id: 'fandom_legacy', name: '팬덤 유산', icon: '🐱', cost: 12, desc: '팬심 보너스 +15%', effect: { fanMultiplier: 0.15 } },
+      { id: 'legendary_factory_plan', name: '전설 공장 계획서', icon: '🌌', cost: 14, desc: '전체 생산 +8%', effect: { globalProduction: 0.08 } },
+      { id: 'crystal_quarry_rights', name: '결정 채굴권', icon: '💠', cost: 16, desc: '성장 결정 성장 시간 -8%', effect: { crystalSpeed: 0.08 } },
+      { id: 'mythic_click_engine', name: '신화 클릭 엔진', icon: '👆', cost: 18, desc: '클릭 보상 +15%, 자동 클릭 속도 +10%', effect: { clickMultiplier: 0.15, autoClickRate: 0.10 } },
+      { id: 'ascended_synergy_core', name: '승천 시너지 코어', icon: '🔗', cost: 22, desc: '전체 생산 +10%', effect: { globalProduction: 0.10 } }
     ];
 
     function isAscensionUpgradePurchased(id) {
@@ -5836,6 +6015,22 @@
       return bonus;
     }
 
+    function getFacilitySystemText(facility) {
+      return {
+        study_room: '연구형 강화와 지식 생산 루프가 강화됩니다.',
+        home_gym: '루틴형 회복/운동 생산 기반이 열립니다.',
+        stream_setup: '밈·도감·황금 이벤트 계열 확장의 기반입니다.',
+        focus_room: '도전/레이드 준비 성공률을 보조합니다.',
+        chat_kingdom: '친구 사건과 사회 생산 시너지를 강화합니다.',
+        lucky_charm_box: '치명타와 희귀 이벤트 쪽 장기 보조 시설입니다.',
+        work_agency: '알바 크루 계열 코인 생산 인프라입니다.',
+        rest_capsule: '오프라인 보상과 자동 회복 계열 인프라입니다.',
+        chat_server: '방치 중 친구 관계도 성장 루프를 엽니다.',
+        clip_studio: '도감 탐색 드론과 함께 미수집 클립 발견률을 올립니다.',
+        auto_training: '방치 중 기본 스탯을 천천히 올리는 훈련 인프라입니다.'
+      }[facility.id] || '시설 레벨을 올리면 관련 시스템 효과가 강화됩니다.';
+    }
+
     function getPassiveProductionBonus(key) {
       ensureProductionState();
       return PRODUCERS.reduce((sum, producer) => {
@@ -5866,9 +6061,14 @@
         getActiveBuffBonus('producer', { producerId: producer.id }) +
         getActiveBuffBonus('producerCategory', { category: producer.category }) +
         getBuffBonus('producer_' + outputKey) +
+        getUpgradeBonus('producer_' + producer.id) +
+        getUpgradeBonus('producerCategory_' + producer.category) +
+        getUpgradeBonus('producer_' + outputKey) +
         getSeasonBonus('producer_' + outputKey) +
         getSeasonBonus('producer_' + producer.category) +
         getFacilityProductionBonus(producer, outputKey) +
+        getFriendProductionBonus(producer, outputKey) +
+        getRaidProducerBonus(producer, outputKey) +
         getProducerSynergyBonus(producer, outputKey) +
         getProducerLevelBonus(producer.id);
       return getGlobalProductionMultiplier() * getActiveBuffMultiplier('globalProducer') * (1 + additive) * getProducerUpgradeMultiplier(producer.id);
@@ -6301,6 +6501,30 @@
           return sum + (bonus.key === key && level >= bonus.level ? bonus.value : 0);
         }, 0);
       }, 0);
+    }
+
+    function getFriendProductionBonus(producer, outputKey) {
+      if (!state || !state.friendXp) return 0;
+      let bonus = 0;
+      const lv5 = (id) => getFriendLevel(id) >= 5;
+      if (lv5('choemjae') && (producer.category === 'knowledge' || outputKey === 'exp' || outputKey === 'knowledge')) bonus += 0.04;
+      if (lv5('kimmin') && (outputKey === 'energyRegen' || outputKey === 'moodRegen')) bonus += 0.05;
+      if (lv5('kwonzoom') && (producer.category === 'click' || outputKey === 'autoClicks')) bonus += 0.04;
+      if (lv5('dogyun') && producer.category === 'social') bonus += 0.04;
+      if (lv5('tuna') && (producer.category === 'coin' || outputKey === 'coins')) bonus += 0.04;
+      if (lv5('songjinwoo') && (producer.category === 'knowledge' || producer.category === 'social')) bonus += 0.03;
+      if (lv5('banggi') && (producer.id === 'pc_bang_branch' || producer.category === 'coin')) bonus += 0.03;
+      if (lv5('jaehyung') && producer.category === 'fitness') bonus += 0.05;
+      if (lv5('pala') && (outputKey === 'eventReward' || outputKey === 'crystalChance')) bonus += 0.04;
+      if (lv5('sudal') && (outputKey === 'moodRegen' || outputKey === 'crystalChance')) bonus += 0.04;
+      if (lv5('yonghwan') && (producer.category === 'legendary' || outputKey === 'exp')) bonus += 0.03;
+      return bonus;
+    }
+
+    function getFriendProductionSummary() {
+      const count = getFriendLevelFiveCount();
+      if (!count) return 'Lv.5 친구 없음';
+      return 'Lv.5 친구 ' + count + '명 · 계열별 생산 보조 적용';
     }
 
     function grantFriendXp(friendId, amount, reason = '') {
@@ -7738,6 +7962,8 @@
         raidResults: { ...(state.raidResults || {}) },
         raidClearCount: state.raidClearCount || 0,
         raidFailCount: state.raidFailCount || 0,
+        raidProducerMastery: { ...(state.raidProducerMastery || {}) },
+        raidCrystalBonus: state.raidCrystalBonus || 0,
         gemUpgrades: { ...(state.gemUpgrades || {}) },
         legendBoxOpened: state.legendBoxOpened || 0,
         clipCollection: { ...(state.clipCollection || {}) },
@@ -7825,6 +8051,11 @@
       const canGainClickExp = source === 'manual' ? now - lastClickExpAt >= CLICK_EXP_INTERVAL_MS : false;
       let expGain = canGainClickExp ? Math.max(1, Math.round(baseGain * Math.min(comboMult, 1.4))) : 0;
       let coinGain = Math.max(1, Math.round(baseGain * comboMult));
+      const cpsSeconds = source === 'manual' ? getManualClickCpsSeconds() : getAutoClickCpsSeconds();
+      if (cpsSeconds > 0) {
+        const productionCoins = Math.floor((getProductionRate('coins') || 0) * cpsSeconds);
+        if (productionCoins > 0) coinGain += productionCoins;
+      }
 
       if (isCrit) {
         expGain = expGain ? Math.max(expGain + 1, Math.round(expGain * 2)) : 0;
@@ -8732,6 +8963,8 @@
           raidResults: saved.raidResults || {},
           raidClearCount: saved.raidClearCount || 0,
           raidFailCount: saved.raidFailCount || 0,
+          raidProducerMastery: saved.raidProducerMastery || {},
+          raidCrystalBonus: saved.raidCrystalBonus || 0,
           gemUpgrades: saved.gemUpgrades || {},
           legendBoxOpened: saved.legendBoxOpened || 0,
           clipCollection: saved.clipCollection || {},
@@ -9330,16 +9563,20 @@
       const clickBase = Math.round(((state.clickPower || 1) + clickerBonus + getTitleBonus('clickFlat')) * 10) / 10;
       const critChance = clamp(8 + state.critBonus + getFacilityBonus('critChance') + getTitleBonus('critChance') + state.luck * 0.4, 0, 70);
       const prestigeReward = getPrestigeReward();
+      const clickCpsSeconds = getManualClickCpsSeconds();
+      const clickCpsPreview = Math.floor(coinsPerSecond * clickCpsSeconds);
       const rows = [
         ['코인/s', '+' + formatRate(coinsPerSecond)],
         ['XP/s', '+' + formatRate(xpPerSecond)],
         ['명성/s', '+' + formatRate(rates.fame)],
         ['자동 클릭/s', '+' + formatRate(getAutoClickRate()) + ' · 효율 ' + Math.round(getAutoClickEfficiency() * 100) + '%'],
+        ['클릭 CPS 연동', clickCpsSeconds > 0 ? '+' + formatBigAmount(clickCpsPreview) + ' / 클릭 (' + Math.round(clickCpsSeconds * 1000) / 1000 + '초분)' : '강화 미구매'],
         ['전체 생산 배율', 'x' + (Math.round(getGlobalProductionMultiplier() * getActiveBuffMultiplier('globalProducer') * 100) / 100)],
         ['팬심', getAchievementCount() + '/' + getTotalAchievementCount() + ' 업적 · ' + getFanStageName() + ' · x' + (Math.round(getFanMultiplier() * 1000) / 1000)],
+        ['친구 생산 보조', getFriendProductionSummary()],
         ['시즌', getSeasonStatusText()],
         ['전설 칩 예상', '+' + getLegendChipsToGain() + ' · 보유 ' + (state.legendChips || 0)],
-        ['성장 결정', (state.growthCrystals || 0) + '개 · 다음 ' + getGrowthCrystalTimeLeft()],
+        ['성장 결정', (state.growthCrystals || 0) + '개 · 다음 ' + getGrowthCrystalTimeLeft() + ' · 생산자Lv ' + getTotalProducerLevel() + ' / 시설Lv ' + getTotalFacilityLevel()],
         ['XP/분', '+' + formatRate(xpPerSecond * 60)],
         ['코인/5초', '+' + formatBigAmount(coinsPerFiveSeconds)],
         ['코인/분', '+' + formatBigAmount(coinsPerSecond * 60)],
@@ -9348,7 +9585,6 @@
         ['황금 이벤트', getGoldenEventStatus()],
         ['오프라인 한도', Math.round(BALANCE.offlineRewardMaxMs / 3600000) + '시간 · ' + Math.round(BALANCE.offlineRewardRate * 100) + '%'],
         ['레이드 티켓', formatPlainNumber(state.raidTickets || 0) + '/' + formatPlainNumber(getMaxRaidTickets()) + ' · 조각 ' + formatPlainNumber(state.raidTicketFragments || 0) + '/3'],
-        ['행동 예약 슬롯', Math.max(0, state.automationSlots || 0) + '/3'],
         ['운영 자동화', getAutomationSlotUsed() + '개 활성'],
         ['자동 회복', state.autoRecoveryEnabled ? '켜짐' : '꺼짐'],
         ['버프 스케줄러', state.buffSchedulerEnabled ? '켜짐' : '꺼짐'],
@@ -9783,6 +10019,31 @@
       }).join('');
     }
 
+    function formatDurationShort(seconds) {
+      const value = Math.max(0, Number(seconds || 0));
+      if (!Number.isFinite(value) || value <= 0) return '-';
+      if (value < 60) return Math.ceil(value) + '초';
+      if (value < 3600) return Math.ceil(value / 60) + '분';
+      if (value < 86400) return Math.round(value / 3600 * 10) / 10 + '시간';
+      return Math.round(value / 86400 * 10) / 10 + '일';
+    }
+
+    function getProducerCoinOutput(producer, owned = getProducerOwned(producer.id)) {
+      const coinOutput = Number((producer.outputs || {}).coins || 0);
+      if (!coinOutput || owned <= 0) return 0;
+      return coinOutput * owned * getProducerOutputMultiplier(producer, 'coins');
+    }
+
+    function buildProducerEfficiencyText(producer, priceOne, totalCoinRate) {
+      const oneCoinDelta = getProducerCoinOutput(producer, 1);
+      const currentCoinOutput = getProducerCoinOutput(producer);
+      const payback = oneCoinDelta > 0 ? formatDurationShort(priceOne / oneCoinDelta) : '성장형';
+      const share = totalCoinRate > 0 && currentCoinOutput > 0 ? Math.round(currentCoinOutput / totalCoinRate * 1000) / 10 + '%' : '-';
+      const next = getNextProducerUpgrade(producer);
+      const milestone = next ? next + '개 업그레이드 대기' : '다음 마일스톤 진행 중';
+      return '회수 시간 ' + payback + ' · 코인 기여율 ' + share + ' · ' + milestone;
+    }
+
     function renderProducerSummaryCard() {
       const rates = getProductionRates();
       const mult = Math.round(getGlobalProductionMultiplier() * getActiveBuffMultiplier('globalProducer') * 100) / 100;
@@ -9880,6 +10141,7 @@
         const rates = getProductionRates();
         els.producerSummary.textContent = '현재 생산: 코인/s +' + formatRate(rates.coins) + ' · XP/s +' + formatRate(rates.exp) + ' · 명성/s +' + formatRate(rates.fame) + ' · 자동 클릭/s +' + formatRate(rates.autoClicks || 0) + ' · 전체 생산 x' + (Math.round(getGlobalProductionMultiplier() * getActiveBuffMultiplier('globalProducer') * 100) / 100);
       }
+      const currentRates = getProductionRates();
       const summaryHtml = renderProducerSummaryCard();
       const cardsHtml = PRODUCERS.map((producer) => {
         const owned = getProducerOwned(producer.id);
@@ -9899,6 +10161,7 @@
           '</div>';
         const desc = '<div class="producer-desc">' + escapeHtml(producer.desc) + '</div>';
         const outputChips = '<div class="producer-output-chips">' + buildProducerOutputChips(producer) + '</div>';
+        const efficiency = '<div class="producer-desc">📈 ' + escapeHtml(buildProducerEfficiencyText(producer, priceOne, currentRates.coins || 0)) + '</div>';
         const milestone = buildProducerMilestoneHtml(producer);
         const buyRow = '<div class="producer-buy-row">' +
           '<button class="producer-buy-btn primary" type="button" data-producer="' + producer.id + '" data-mode="one"' + (canBuyOne ? '' : ' disabled') + '>' +
@@ -9908,7 +10171,7 @@
           '<button class="producer-buy-btn" type="button" data-producer="' + producer.id + '" data-mode="max"' + (maxCount <= 0 ? ' disabled' : '') + '>' +
           '<span class="producer-buy-label">가능한 만큼</span><span class="producer-buy-cost">+' + maxCount + '</span></button>' +
           '</div>';
-        return '<div class="' + cardCls + '">' + head + desc + outputChips + milestone + buildProducerLevelHtml(producer) + buyRow + '</div>';
+        return '<div class="' + cardCls + '">' + head + desc + outputChips + efficiency + milestone + buildProducerLevelHtml(producer) + buyRow + '</div>';
       }).join('');
       els.producerList.innerHTML = summaryHtml + cardsHtml;
     }
@@ -10038,11 +10301,13 @@
         const facilityLevel = (state.facilityLevels && state.facilityLevels[facility.id]) || 0;
         const facilityLevelCost = getCrystalLevelCost(facilityLevel);
         const canLevelFacility = kind === 'built' && state.growthCrystalUnlocked && state.growthCrystals >= facilityLevelCost;
+        const systemText = kind === 'built' ? '<div class="facility-note"><strong>해금</strong> · ' + escapeHtml(getFacilitySystemText(facility)) + '</div>' : '';
         return '<div class="' + cls + '">' +
           '<div class="facility-head">' +
           '<div><div class="facility-name"><span class="facility-icon">' + facility.icon + '</span>' + escapeHtml(facility.name) + '</div></div>' +
           '<span class="pill ' + (kind === 'built' ? 'gold' : '') + '">' + status + (kind === 'built' ? ' · Lv.' + facilityLevel : '') + '</span></div>' +
           '<div class="facility-effect"><strong>효과</strong> · ' + escapeHtml(facility.desc) + '</div>' +
+          systemText +
           (kind === 'built'
             ? '<div class="facility-effect"><strong>성장 결정</strong> · 시설 효과 +' + (Math.round(getFacilityLevelBonus(facility.id) * 1000) / 10) + '%</div>'
             : '<div class="facility-cost-row"><strong>건설 비용</strong>' +
@@ -10122,6 +10387,7 @@
           '<div class="raid-detail"><strong>성공</strong> · ' + escapeHtml(formatRaidReward(raid.success)) + '</div>' +
           '<div class="raid-detail"><strong>실패</strong> · ' + escapeHtml(formatRaidReward(raid.fail)) + '</div>' +
           '</div>' +
+          '<div class="raid-detail"><strong>고유 보상</strong> · 성공 시 해당 레이드 계열 생산 숙련 +1.2%, 누적 성공마다 성장 결정 속도 보정</div>' +
           '<div class="raid-actions"><span class="raid-detail">🎟️ 레이드 티켓 ' + formatPlainNumber(state.raidTickets || 0) + '/' + formatPlainNumber(getMaxRaidTickets()) + ' · 조각 ' + formatPlainNumber(state.raidTicketFragments || 0) + '/3</span>' +
           '<button class="small-btn ' + (!disabled ? 'gold' : '') + '" type="button" data-raid="' + raid.id + '"' + (disabled ? ' disabled' : '') + '>' + buttonLabel + '</button></div>' +
           '</div>';
