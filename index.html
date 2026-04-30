@@ -3249,7 +3249,7 @@
     const BASE_REST_COOLDOWN_MS = 20000;
     const MIN_REST_COOLDOWN_MS = 4000;
     const DATE_COOLDOWN_MS = 0;
-    const CHALLENGE_COOLDOWN_MS = 15000;
+    const CHALLENGE_COOLDOWN_MS = 60000;
     const TITLE_COLLECTION_BONUS_PER_TITLE = 0.002;
     const TITLE_COLLECTION_BONUS_MAX = 0.05;
     const TITLE_PERCENT_EFFECT_MAX = 0.01;
@@ -3286,8 +3286,8 @@
       ],
       producerCostGrowthMultiplier: 1,
       producerOutputMultiplier: 1,
-      raidCostMultiplier: 0.72,
-      raidFailRefundRate: 0.6,
+      raidCostMultiplier: 0.9,
+      raidFailRefundRate: 0.3,
       prestigeProductionMultiplier: 0.1,
       offlineRewardMaxMs: 2 * 60 * 60 * 1000,
       offlineRewardRate: 0.6,
@@ -3316,6 +3316,17 @@
     };
 
     const PRODUCER_UPGRADE_THRESHOLDS = [10, 25, 50, 100, 200, 500, 1000];
+    const PRODUCER_UPGRADE_MULTIPLIER_STEPS = [1.5, 2.0, 2.75, 3.75, 5.25, 7.5, 10.0];
+    const COLLECTION_BONUS_CAP = 0.15;
+    const GOLDEN_COMBO_BONUS_CAP = 0.30;
+    const GROWTH_CRYSTAL_BASE_MS = 4 * 60 * 60 * 1000;
+    const GROWTH_CRYSTAL_MIN_MS = Math.round(GROWTH_CRYSTAL_BASE_MS * 0.60);
+    const GROWTH_CRYSTAL_VARIANTS = [
+      { id: 'normal', name: '일반 성장 결정', icon: '💠', amount: 1, weight: 82 },
+      { id: 'shiny', name: '반짝 성장 결정', icon: '💠', amount: 1, weight: 12 },
+      { id: 'condensed', name: '응축 성장 결정', icon: '💎', amount: 2, weight: 4 },
+      { id: 'prank', name: '장난 성장 결정', icon: '🎭', amount: 1, weight: 2 }
+    ];
     const PRODUCERS = [
       { id: 'cursor_helper', name: '문키 커서', icon: '🖱️', category: 'click', baseCost: 15, costGrowth: 1.15, outputs: { autoClicks: 0.1 }, desc: '10초마다 문주성을 자동 클릭합니다. 자동 클릭은 수동 클릭보다 약합니다.' },
       { id: 'study_note_bot', name: '자동 필기 봇', icon: '🤖', category: 'knowledge', baseCost: 50, costGrowth: 1.15, outputs: { exp: 0.2, knowledge: 0.02 }, desc: '초반 자동 XP와 지식을 담당합니다.' },
@@ -3324,11 +3335,11 @@
       { id: 'talk_room_server', name: '단톡방 서버', icon: '📡', category: 'social', baseCost: 800, costGrowth: 1.16, outputs: { fame: 0.04, charm: 0.01, friendChance: 0.002 }, desc: '명성과 친구 관계도 사건의 기반입니다.' },
       { id: 'pc_bang_branch', name: 'PC방 지점', icon: '🖥️', category: 'coin', baseCost: 2500, costGrowth: 1.17, outputs: { coins: 4, moodRegen: 0.02 }, desc: '중반 코인 생산과 기분 회복 이벤트를 맡습니다.' },
       { id: 'convenience_chain', name: '편의점 체인', icon: '🏪', category: 'coin', baseCost: 9000, costGrowth: 1.17, outputs: { coins: 12, moodRegen: 0.03 }, desc: '알바 크루와 PC방 지점 사이를 이어주는 코인 생산 라인입니다.' },
-      { id: 'project_studio', name: '프로젝트 스튜디오', icon: '🛠️', category: 'knowledge', baseCost: 12000, costGrowth: 1.18, outputs: { exp: 8, knowledge: 0.2, fame: 0.05 }, desc: '레벨업과 지식 생산을 크게 끌어올립니다.' },
+      { id: 'project_studio', name: '프로젝트 스튜디오', icon: '🛠️', category: 'knowledge', baseCost: 12000, costGrowth: 1.18, outputs: { exp: 4, knowledge: 0.2, fame: 0.05 }, desc: '레벨업과 지식 생산을 크게 끌어올립니다.' },
       { id: 'meme_factory', name: '밈 공장', icon: '🏭', category: 'social', baseCost: 75000, costGrowth: 1.18, outputs: { fame: 0.5, eventReward: 0.002 }, desc: '명성, 이벤트 보상, 도감 컨텐츠와 맞물립니다.' },
       { id: 'meme_algorithm', name: '밈 알고리즘', icon: '📈', category: 'social', baseCost: 250000, costGrowth: 1.19, outputs: { fame: 2, eventReward: 0.003 }, desc: '밈 공장 이후 명성과 이벤트 보상을 자동 확산합니다.' },
-      { id: 'legend_lab', name: '전설 연구소', icon: '🌌', category: 'legendary', baseCost: 500000, costGrowth: 1.19, outputs: { exp: 60, globalProduction: 0.003, raidTickets: 0.00002 }, desc: '후반 전체 생산 시너지와 레이드 티켓을 여는 연구소입니다.' },
-      { id: 'munki_space_center', name: '문키 우주센터', icon: '🚀', category: 'legendary', baseCost: 3000000, costGrowth: 1.2, outputs: { exp: 180, globalProduction: 0.006, crystalChance: 0.000002 }, desc: '전설 연구소 이후의 장기 목표입니다. 성장 결정 발견률을 아주 조금 올립니다.' }
+      { id: 'legend_lab', name: '전설 연구소', icon: '🌌', category: 'legendary', baseCost: 500000, costGrowth: 1.19, outputs: { exp: 30, globalProduction: 0.003, raidTickets: 0.00002 }, desc: '후반 전체 생산 시너지와 레이드 티켓을 여는 연구소입니다.' },
+      { id: 'munki_space_center', name: '문키 우주센터', icon: '🚀', category: 'legendary', baseCost: 3000000, costGrowth: 1.2, outputs: { exp: 90, globalProduction: 0.006, crystalChance: 0.000002 }, desc: '전설 연구소 이후의 장기 목표입니다. 성장 결정 발견률을 아주 조금 올립니다.' }
     ];
 
     const PRODUCER_OUTPUT_LABELS = {
@@ -3350,13 +3361,15 @@
     };
 
     const GOLDEN_EVENT_TYPES = [
-      { type: 'frenzy', label: '황금 프렌지', icon: '✨', weight: 25 },
-      { type: 'lucky', label: '럭키 문키', icon: '🪙', weight: 30 },
-      { type: 'click_frenzy', label: '클릭 광란', icon: '👆', weight: 15 },
-      { type: 'building_special', label: '생산자 폭주', icon: '🏭', weight: 15 },
+      { type: 'munki_frenzy', label: '문키 프렌지', icon: '✨', weight: 24 },
+      { type: 'lucky_munki', label: '알바 대박', icon: '🪙', weight: 28 },
+      { type: 'finger_awaken', label: '손가락 각성', icon: '👆', weight: 16 },
+      { type: 'routine_surge', label: '루틴 폭주', icon: '📚', weight: 14 },
+      { type: 'building_special', label: '생산자 폭주', icon: '🏭', weight: 12 },
       { type: 'golden_chain', label: '황금 체인', icon: '⛓️', weight: 8 },
+      { type: 'facility_overheat', label: '시설 과열', icon: '🏠', weight: 8 },
       { type: 'raid_ticket', label: '레이드 초대장', icon: '🐉', weight: 6 },
-      { type: 'sweet_growth', label: '성장 결정', icon: '💠', weight: 1 }
+      { type: 'sweet_growth', label: '성장 결정 반짝임', icon: '💠', weight: 1 }
     ];
 
     const UPGRADES = [
@@ -3372,7 +3385,16 @@
       { id: 'synergy_chat_meme', name: '단톡방 알고리즘', icon: '📡', price: 160000, type: 'synergy', desc: '사회 계열 생산자 +15%, 도감 발견 보정 +5%', unlock: () => getProducerOwned('talk_room_server') >= 25 && getProducerOwned('meme_factory') >= 10, effect: { clipDiscovery: 0.05 } },
       { id: 'synergy_lab_all', name: '전설 연구 네트워크', icon: '🌌', price: 550000, type: 'synergy', desc: '전체 생산 +10%', unlock: () => getProducerOwned('legend_lab') >= 10 && getTotalProducerOwned() >= 300, effect: { globalProduction: 0.10 } },
       { id: 'golden_sense_upgrade', name: '황금 감각', icon: '✨', price: 120000, type: 'golden', desc: '황금 이벤트 보상 +10%', unlock: () => (state.goldenEventStats && state.goldenEventStats.clicked || 0) >= 10, effect: { goldenReward: 0.10 } },
-      { id: 'crystal_harvest_manual', name: '결정 채집 노트', icon: '💠', price: 250000, type: 'crystal', desc: '성장 결정 성장 시간 -5%', unlock: () => !!state.growthCrystalUnlocked, effect: { crystalSpeed: 0.05 } }
+      { id: 'golden_timer_training', name: '황금 타이밍 훈련', icon: '⏱️', price: 260000, type: 'golden', desc: '황금 이벤트 지속시간 +2초, 콤보 유지 보정', unlock: () => (state.goldenEventStats && state.goldenEventStats.clicked || 0) >= 20, effect: { goldenDurationMs: 2000, goldenComboGrace: 0.05 } },
+      { id: 'clip_analysis_method', name: '흑역사 분석법', icon: '📼', price: 180000, type: 'collection', desc: '도감 발견률 +3%, 이벤트 보상 +5%', unlock: () => getClipCollectionRatio() >= 0.25, effect: { clipDiscovery: 0.03, eventReward: 0.05 } },
+      { id: 'achievement_engine', name: '업적 엔진', icon: '🏅', price: 220000, type: 'collection', desc: '업적 보너스가 전체 생산에 더 잘 반영됩니다.', unlock: () => getAchievementCount() >= 25, effect: { achievementProduction: 0.02 } },
+      { id: 'title_showcase', name: '칭호 전시장', icon: '🏷️', price: 160000, type: 'collection', desc: '칭호 수집 기반 클릭 보상 +3%', unlock: () => getUnlockedTitleCount() >= 20, effect: { titleClick: 0.03 } },
+      { id: 'sync_note_room', name: '필기 자동 동기화', icon: '📚', price: 65000, type: 'facility', desc: '공부방이 있으면 지식 생산 +10%', unlock: () => getProducerOwned('study_note_bot') >= 25 && !!(state.builtFacilities && state.builtFacilities.study_room), effect: { producer_knowledge: 0.10 } },
+      { id: 'work_route_upgrade', name: '알바 물류 루트', icon: '🚚', price: 90000, type: 'synergy', desc: '알바 크루 50개와 편의점 체인 10개 이후 코인 생산 +12%', unlock: () => getProducerOwned('part_time_crew') >= 50 && getProducerOwned('convenience_chain') >= 10, effect: { producer_coins: 0.12 } },
+      { id: 'chat_meme_spread', name: '단톡방 밈 확산', icon: '📣', price: 220000, type: 'synergy', desc: '단톡방 서버와 밈 공장이 사회 생산과 도감 발견률을 올립니다.', unlock: () => getProducerOwned('talk_room_server') >= 25 && getProducerOwned('meme_factory') >= 10, effect: { producer_social: 0.12, clipDiscovery: 0.03 } },
+      { id: 'legend_project_manual', name: '전설 프로젝트 관리법', icon: '🛠️', price: 420000, type: 'synergy', desc: '프로젝트 스튜디오와 전설 연구소가 XP 생산 +15%', unlock: () => getProducerOwned('project_studio') >= 25 && getProducerOwned('legend_lab') >= 5, effect: { producer_exp: 0.15 } },
+      { id: 'crystal_harvest_manual', name: '결정 채집 노트', icon: '💠', price: 250000, type: 'crystal', desc: '성장 결정 성장 시간 -5%', unlock: () => !!state.growthCrystalUnlocked, effect: { crystalSpeed: 0.05 } },
+      { id: 'crystal_resonance', name: '결정 공명 장치', icon: '💠', price: 750000, type: 'crystal', desc: '성장 결정 성장 시간 -5%, 응축 결정 확률 소폭 증가', unlock: () => (state.growthCrystalState && state.growthCrystalState.totalHarvested || 0) >= 3, effect: { crystalSpeed: 0.05, condensedCrystalChance: 0.01 } }
     ];
 
     const SEASON_EVENTS = [
@@ -3884,9 +3906,9 @@
       { id: 'study_room', name: '공부방', icon: '📚', cost: { knowledge: 100, coins: 200 }, effect: {}, desc: '지식/XP 생산 +15%' },
       { id: 'home_gym', name: '홈짐', icon: '🏋️', cost: { fitness: 100, coins: 200 }, effect: { rest: 0.1 }, desc: '홈짐 생산 +20%, 휴식 회복량 +10%' },
       { id: 'stream_setup', name: '방송 세팅', icon: '📹', cost: { charm: 100, fame: 80 }, effect: { eventReward: 0.05 }, desc: '밈/단톡방 생산 +15%, 이벤트 보상 +5%' },
-      { id: 'focus_room', name: '吏묒쨷??諛?', icon: '?렞', cost: { focus: 120, coins: 300 }, effect: { challengeChance: 3 }, desc: '?꾩쟾 ?깃났瑜?+3%' },
-      { id: 'chat_kingdom', name: '?⑦넚諛??뺢뎅', icon: '?벑', cost: { fame: 150, charm: 80 }, effect: { friendEventBoost: 1 }, desc: '移쒓뎄 ?대깽???깆옣 ?뺣쪧 利앷?' },
-      { id: 'lucky_charm_box', name: '?됱슫 遺?곹븿', icon: '??', cost: { luck: 50, gems: 1 }, effect: { critChance: 2 }, desc: '?대┃ 移섎챸? ?뺣쪧 +2%' },
+      { id: 'focus_room', name: '집중의 방', icon: '🎯', cost: { focus: 120, coins: 300 }, effect: { challengeChance: 3 }, desc: '도전 성공률 +3%p, 프로젝트 보조' },
+      { id: 'chat_kingdom', name: '단톡방 왕국', icon: '👑', cost: { fame: 150, charm: 80 }, effect: { friendEventBoost: 1 }, desc: '친구 이벤트 등장 확률 증가, 사회 생산 보조' },
+      { id: 'lucky_charm_box', name: '행운 부적함', icon: '🍀', cost: { luck: 50, gems: 1 }, effect: { critChance: 2 }, desc: '클릭 치명타 확률 +2%p, 황금 보상 보조' },
       { id: 'work_agency', name: '알바 대행소', icon: '💼', cost: { coins: 350, fame: 80 }, effect: {}, desc: '알바 크루 생산 +20%' },
       { id: 'rest_capsule', name: '휴식 캡슐', icon: '🛌', cost: { fitness: 80, coins: 260 }, effect: { idleRecovery: 1 }, desc: '오프라인 보상 +15%, 체력/기분 회복 보조' },
       { id: 'chat_server', name: '단톡방 서버', icon: '📡', cost: { fame: 220, charm: 120, coins: 420 }, effect: { idleFriendXp: 1 }, desc: '30초마다 무작위 친구 관계도 +1' },
@@ -5131,7 +5153,13 @@
         friendXp: {},
         friendEventCount: 0,
         builtFacilities: {},
+        facilityOperationUntil: {},
+        facilityOperationStats: {},
+        statResearch: {},
+        facilityResearch: {},
         raidResults: {},
+        raidFirstClearRewards: {},
+        raidDailyFirstClearDate: '',
         raidClearCount: 0,
         raidFailCount: 0,
         gemUpgrades: { permanentClick: 0, permanentEfficiency: 0 },
@@ -5237,6 +5265,30 @@
         leaderboardRows: [],
         leaderboardStatus: '랭킹을 불러올 준비가 됐습니다.',
         preventEventModalBackdropClose: false,
+        balanceVersion: 4,
+        legacyTree: { purchased: {}, unlocked: true },
+        facilityMiniGames: {
+          routineGarden: { slots: [null, null, null] },
+          memeExchange: { tokens: 0, price: 100, nextAt: Date.now() + 5 * 60 * 1000 },
+          mentorSlots: { equipped: [] },
+          focusBook: {}
+        },
+        growthCrystalState: {
+          unlocked: false,
+          amount: 0,
+          nextReadyAt: 0,
+          lastHarvestAt: 0,
+          variant: 'normal',
+          totalHarvested: 0
+        },
+        goldenCombo: { chain: 0, lastType: '', lastAt: 0, bestChain: 0 },
+        producerMilestoneRewards: {},
+        collectionMilestonesClaimed: {},
+        newsTickerSeen: {},
+        newsTickerIndex: 0,
+        newsTickerLastAt: 0,
+        bulkBuyMode: 1,
+        pinnedGoal: '',
         theme: 'dark'
       };
     }
@@ -5697,7 +5749,7 @@
       const type = getRaidType(raid);
       const boostBonus = Math.min(8, ((state.raidBoosts && state.raidBoosts[type]) || 0) * 5);
       const managerBonus = (state.raidPrepManagerLevel || 0) * 1;
-      return clamp(raid.baseChance + excessBonus + luckBonus + getTitleBonus('raidChance') + boostBonus + managerBonus, 35, 85);
+      return clamp(raid.baseChance + excessBonus + luckBonus + getTitleBonus('raidChance') + getMentorBonus('raidChance') + getActiveFacilityOperationBonus('raidChance') + getAscensionUpgradeBonus('raidChance') + boostBonus + managerBonus, 35, 85);
     }
 
     function getRaidType(raid) {
@@ -5777,9 +5829,18 @@
       applyRaidReward(reward);
       if (success) {
         state.raidClearCount += 1;
-        state.permanentProductionBonus = (state.permanentProductionBonus || 0) + 0.01;
-        state.goldenRewardBonus = (state.goldenRewardBonus || 0) + 0.01;
-        addLog('🐉 레이드 성공 [' + raid.name + '] ' + cleanEventMessage(reward.log, '문주성이 레이드를 멋지게 넘겼다.'), 'success');
+        const firstClear = !(state.raidFirstClearRewards && state.raidFirstClearRewards[raid.id]);
+        if (firstClear) {
+          if (!state.raidFirstClearRewards || typeof state.raidFirstClearRewards !== 'object') state.raidFirstClearRewards = {};
+          const tierBonus = raid.tier === '상급' ? 0.003 : raid.tier === '중급' ? 0.002 : 0.001;
+          state.permanentProductionBonus = (state.permanentProductionBonus || 0) + tierBonus;
+          if (raid.tier === '상급') state.goldenRewardBonus = (state.goldenRewardBonus || 0) + 0.002;
+          state.raidFirstClearRewards[raid.id] = true;
+          addLog('🐉 최초 레이드 성공 [' + raid.name + '] 영구 생산 보너스를 확보했다. ' + cleanEventMessage(reward.log, '문주성이 레이드를 멋지게 넘겼다.'), 'success');
+        } else {
+          addTimedBuff({ id: 'raid_repeat_boost', name: '레이드 재정비', icon: '🐉', type: 'globalProducer', multiplier: 0.10, durationMs: 60000, maxDurationMs: 60000, bonuses: {} });
+          addLog('🐉 반복 레이드 성공 [' + raid.name + '] 60초간 전체 생산 +10% 버프를 얻었다. ' + cleanEventMessage(reward.log, '문주성이 레이드를 멋지게 넘겼다.'), 'success');
+        }
         showToast('🐉 ' + raid.name + ' 레이드 성공!', 'gold');
       } else {
         state.raidFailCount += 1;
@@ -5846,6 +5907,7 @@
       ensureGrowthCrystalState();
       ensureLegendChipState();
       ensureSeasonState();
+      ensureLongLoopState();
     }
 
     function ensureSeasonState() {
@@ -5889,6 +5951,259 @@
       if (!season) return '진행 중인 시즌 없음';
       const left = Math.max(0, Number(state.seasonEndsAt || 0) - Date.now());
       return season.icon + ' ' + season.name + ' · ' + Math.ceil(left / 60000) + '분 · ' + season.desc;
+    }
+
+    function ensureLongLoopState() {
+      if (typeof state.balanceVersion !== 'number' || state.balanceVersion < 4) state.balanceVersion = 4;
+      if (!state.legacyTree || typeof state.legacyTree !== 'object' || Array.isArray(state.legacyTree)) state.legacyTree = { purchased: {}, unlocked: true };
+      if (!state.legacyTree.purchased || typeof state.legacyTree.purchased !== 'object') state.legacyTree.purchased = {};
+      state.legacyTree.unlocked = true;
+      if (!state.facilityMiniGames || typeof state.facilityMiniGames !== 'object' || Array.isArray(state.facilityMiniGames)) state.facilityMiniGames = {};
+      if (!state.facilityOperationUntil || typeof state.facilityOperationUntil !== 'object' || Array.isArray(state.facilityOperationUntil)) state.facilityOperationUntil = {};
+      if (!state.facilityOperationStats || typeof state.facilityOperationStats !== 'object' || Array.isArray(state.facilityOperationStats)) state.facilityOperationStats = {};
+      if (!state.statResearch || typeof state.statResearch !== 'object' || Array.isArray(state.statResearch)) state.statResearch = {};
+      if (!state.facilityResearch || typeof state.facilityResearch !== 'object' || Array.isArray(state.facilityResearch)) state.facilityResearch = {};
+      if (!state.facilityMiniGames.routineGarden || typeof state.facilityMiniGames.routineGarden !== 'object') state.facilityMiniGames.routineGarden = { slots: [null, null, null] };
+      if (!Array.isArray(state.facilityMiniGames.routineGarden.slots)) state.facilityMiniGames.routineGarden.slots = [null, null, null];
+      while (state.facilityMiniGames.routineGarden.slots.length < 3) state.facilityMiniGames.routineGarden.slots.push(null);
+      if (!state.facilityMiniGames.memeExchange || typeof state.facilityMiniGames.memeExchange !== 'object') state.facilityMiniGames.memeExchange = { tokens: 0, price: 100, nextAt: Date.now() + 5 * 60 * 1000 };
+      if (typeof state.facilityMiniGames.memeExchange.tokens !== 'number') state.facilityMiniGames.memeExchange.tokens = 0;
+      if (typeof state.facilityMiniGames.memeExchange.price !== 'number' || !Number.isFinite(state.facilityMiniGames.memeExchange.price)) state.facilityMiniGames.memeExchange.price = 100;
+      if (typeof state.facilityMiniGames.memeExchange.nextAt !== 'number') state.facilityMiniGames.memeExchange.nextAt = Date.now() + 5 * 60 * 1000;
+      if (!state.facilityMiniGames.mentorSlots || typeof state.facilityMiniGames.mentorSlots !== 'object') state.facilityMiniGames.mentorSlots = { equipped: [] };
+      if (!Array.isArray(state.facilityMiniGames.mentorSlots.equipped)) state.facilityMiniGames.mentorSlots.equipped = [];
+      if (!state.facilityMiniGames.focusBook || typeof state.facilityMiniGames.focusBook !== 'object') state.facilityMiniGames.focusBook = {};
+      if (!state.growthCrystalState || typeof state.growthCrystalState !== 'object' || Array.isArray(state.growthCrystalState)) state.growthCrystalState = {};
+      state.growthCrystalState.unlocked = !!state.growthCrystalUnlocked || !!state.growthCrystalState.unlocked;
+      state.growthCrystalState.amount = Number.isFinite(state.growthCrystals) ? state.growthCrystals : Number(state.growthCrystalState.amount || 0);
+      state.growthCrystalState.nextReadyAt = Number(state.growthCrystalMatureAt || state.growthCrystalState.nextReadyAt || 0);
+      state.growthCrystalState.lastHarvestAt = Number(state.growthCrystalHarvestedAt || state.growthCrystalState.lastHarvestAt || 0);
+      if (!GROWTH_CRYSTAL_VARIANTS.some((variant) => variant.id === state.growthCrystalState.variant)) state.growthCrystalState.variant = 'normal';
+      if (typeof state.growthCrystalState.totalHarvested !== 'number') state.growthCrystalState.totalHarvested = 0;
+      if (!state.goldenCombo || typeof state.goldenCombo !== 'object' || Array.isArray(state.goldenCombo)) state.goldenCombo = { chain: 0, lastType: '', lastAt: 0, bestChain: 0 };
+      ['chain','lastAt','bestChain'].forEach((key) => { if (typeof state.goldenCombo[key] !== 'number' || !Number.isFinite(state.goldenCombo[key])) state.goldenCombo[key] = 0; });
+      if (typeof state.goldenCombo.lastType !== 'string') state.goldenCombo.lastType = '';
+      if (!state.producerMilestoneRewards || typeof state.producerMilestoneRewards !== 'object' || Array.isArray(state.producerMilestoneRewards)) state.producerMilestoneRewards = {};
+      if (!state.collectionMilestonesClaimed || typeof state.collectionMilestonesClaimed !== 'object' || Array.isArray(state.collectionMilestonesClaimed)) state.collectionMilestonesClaimed = {};
+      if (!state.newsTickerSeen || typeof state.newsTickerSeen !== 'object' || Array.isArray(state.newsTickerSeen)) state.newsTickerSeen = {};
+      if (typeof state.newsTickerIndex !== 'number') state.newsTickerIndex = 0;
+      if (typeof state.newsTickerLastAt !== 'number') state.newsTickerLastAt = 0;
+      if (![1, 10, 25, 100, 'max'].includes(state.bulkBuyMode)) state.bulkBuyMode = 1;
+      if (typeof state.pinnedGoal !== 'string') state.pinnedGoal = '';
+    }
+
+    function formatShortTime(ms) {
+      const safe = Math.max(0, Number(ms || 0));
+      if (safe <= 0) return '지금';
+      const hours = Math.floor(safe / 3600000);
+      const minutes = Math.floor((safe % 3600000) / 60000);
+      const seconds = Math.floor((safe % 60000) / 1000);
+      if (hours > 0) return hours + '시간 ' + minutes + '분';
+      if (minutes > 0) return minutes + '분 ' + seconds + '초';
+      return seconds + '초';
+    }
+
+    function getMunkiPowerRate() {
+      const rates = getProductionRates();
+      return (rates.coins || 0) +
+        (rates.exp || 0) * 2 +
+        (rates.fame || 0) * 3 +
+        (rates.knowledge || 0) * 2 +
+        (rates.fitness || 0) * 2 +
+        (rates.charm || 0) * 2 +
+        (rates.focus || 0) * 2;
+    }
+
+    function getClipCollectionRatio() {
+      return clipCatalog.length ? getClipCount() / clipCatalog.length : 0;
+    }
+
+    function getCollectionBonus(key) {
+      ensureLongLoopState();
+      const clipRatio = getClipCollectionRatio();
+      const achievementCount = getAchievementCount();
+      const titleCount = Math.max(0, getUnlockedTitleCount() - 1);
+      const legacyBonus = getAscensionUpgradeBonus('collectionBonus');
+      const values = {
+        eventReward: Math.min(0.10, Math.floor(clipRatio * 10) * 0.01 + getUpgradeBonus('eventReward') + legacyBonus * 0.4),
+        globalProduction: Math.min(COLLECTION_BONUS_CAP, Math.floor(achievementCount / 10) * 0.005 + getUpgradeBonus('achievementProduction') + legacyBonus * 0.5),
+        clickMultiplier: Math.min(0.10, Math.floor(titleCount / 5) * 0.005 + getUpgradeBonus('titleClick') + legacyBonus * 0.25),
+        crystalSpeed: clipRatio >= 0.25 ? 0.02 : 0,
+        goldenReward: clipRatio >= 0.50 ? 0.05 : 0,
+        clipDiscovery: clipRatio >= 0.75 ? 0.05 : 0
+      };
+      return Number(values[key] || 0);
+    }
+
+    function getCollectionBonusSummary() {
+      return '도감 보상 +' + Math.round(getCollectionBonus('eventReward') * 100) + '% · 업적 생산 +' + Math.round(getCollectionBonus('globalProduction') * 1000) / 10 + '% · 칭호 클릭 +' + Math.round(getCollectionBonus('clickMultiplier') * 1000) / 10 + '%';
+    }
+
+    function getFacilityDisplayLevel(facilityId) {
+      return state.builtFacilities && state.builtFacilities[facilityId] ? 1 + Math.max(0, Number((state.facilityLevels || {})[facilityId] || 0)) : 0;
+    }
+
+    function getGoldenComboBonus() {
+      ensureLongLoopState();
+      const now = Date.now();
+      if (now - (state.goldenCombo.lastAt || 0) > 10 * 60 * 1000) return 0;
+      return Math.min(GOLDEN_COMBO_BONUS_CAP, Math.max(0, state.goldenCombo.chain || 0) * 0.02);
+    }
+
+    function updateGoldenCombo(type) {
+      ensureLongLoopState();
+      const now = Date.now();
+      if (now - (state.goldenCombo.lastAt || 0) <= 5 * 60 * 1000) state.goldenCombo.chain = Math.min(15, (state.goldenCombo.chain || 0) + 1);
+      else state.goldenCombo.chain = 1;
+      state.goldenCombo.lastType = type || '';
+      state.goldenCombo.lastAt = now;
+      state.goldenCombo.bestChain = Math.max(state.goldenCombo.bestChain || 0, state.goldenCombo.chain || 0);
+      if (state.goldenCombo.chain > 1) addLog('✨ 황금 콤보 x' + state.goldenCombo.chain + '! 다음 보상이 조금 강해집니다.', 'event');
+    }
+
+    function getNewsTickerText() {
+      ensureLongLoopState();
+      const rates = getProductionRates();
+      const pool = [
+        '문키가 성장 장부를 보며 숫자 오르는 소리에 집중하고 있습니다.',
+        '단톡방 서버가 오늘도 조용히 불타고 있습니다.',
+        '황금 문키 목격담이 올라왔습니다. 누르면 좋은 일이 생길지도요.',
+        '프로젝트 스튜디오에서 커밋 메시지 “대충 수정”이 발견됐습니다.',
+        '레이드 티켓을 들고 친구들이 의심스럽게 모였습니다.',
+        '현재 문키력/s는 ' + formatRate(getMunkiPowerRate()) + '입니다.',
+        '자동 생산 코인/s ' + formatRate(rates.coins) + ', XP/s ' + formatRate(rates.exp) + '로 굴러가는 중입니다.'
+      ];
+      if (canHarvestGrowthCrystal()) pool.push('성장 결정이 수확을 기다리고 있습니다.');
+      if (canPrestige()) pool.push('환생 가능 상태입니다. 다음 회차 준비가 끝났습니다.');
+      if (state.goldenEvent) pool.push('황금 이벤트가 떠 있습니다. 지금 클릭하면 콤보가 이어집니다.');
+      const now = Date.now();
+      if (now - (state.newsTickerLastAt || 0) > 15000) {
+        state.newsTickerIndex = ((state.newsTickerIndex || 0) + 1) % pool.length;
+        state.newsTickerLastAt = now;
+      }
+      return pool[state.newsTickerIndex % pool.length];
+    }
+
+    const PRODUCER_MILESTONE_REWARDS = {
+      cursor_helper: { 10: { key: 'autoClickEfficiency', value: 0.05, label: '자동 클릭 효율 +5%' } },
+      study_note_bot: { 25: { key: 'producer_knowledge', value: 0.05, label: '지식 생산 +5%' } },
+      part_time_crew: { 50: { key: 'workCoins', value: 0.10, label: '알바 행동 코인 +10%' } },
+      project_studio: { 100: { key: 'projectExp', value: 0.10, label: '프로젝트 행동 XP +10%' } },
+      meme_factory: { 100: { key: 'clipDiscovery', value: 0.03, label: '도감 발견률 +3%' } },
+      legend_lab: { 200: { key: 'crystalChance', value: 0.000001, label: '성장 결정 발견률 소폭 증가' } },
+      munki_space_center: { 500: { key: 'prestigeReward', value: 0.01, label: '환생 보상 계산 +1%' } }
+    };
+
+    function getProducerMilestoneBonus(key) {
+      ensureLongLoopState();
+      let total = 0;
+      Object.entries(state.producerMilestoneRewards || {}).forEach(([producerId, rewards]) => {
+        Object.keys(rewards || {}).forEach((threshold) => {
+          const reward = PRODUCER_MILESTONE_REWARDS[producerId] && PRODUCER_MILESTONE_REWARDS[producerId][threshold];
+          if (reward && reward.key === key) total += Number(reward.value || 0);
+        });
+      });
+      return total;
+    }
+
+    function getProducerMilestoneRewardLabel(producerId, threshold) {
+      const reward = PRODUCER_MILESTONE_REWARDS[producerId] && PRODUCER_MILESTONE_REWARDS[producerId][threshold];
+      if (reward) return reward.label;
+      if (threshold === 10) return '기본 생산 보너스 해금';
+      if (threshold === 25) return '생산자 전용 강화 해금';
+      if (threshold === 50) return '관련 시설 시너지 해금';
+      if (threshold === 100) return '도감/칭호 목표 해금';
+      if (threshold === 200) return '황금 이벤트 특수 보정';
+      if (threshold === 500) return '환생 트리 보너스 조건';
+      return '전설 마일스톤';
+    }
+
+    function checkProducerMilestones(producerId) {
+      ensureLongLoopState();
+      const producer = getProducer(producerId);
+      if (!producer) return;
+      if (!state.producerMilestoneRewards[producerId]) state.producerMilestoneRewards[producerId] = {};
+      const owned = getProducerOwned(producerId);
+      PRODUCER_UPGRADE_THRESHOLDS.forEach((threshold) => {
+        if (owned < threshold || state.producerMilestoneRewards[producerId][threshold]) return;
+        state.producerMilestoneRewards[producerId][threshold] = true;
+        addLog('🏭 마일스톤 달성: ' + producer.name + ' ' + threshold + '개 · ' + getProducerMilestoneRewardLabel(producerId, threshold), 'success');
+        showToast(producer.name + ' ' + threshold + '개 마일스톤', 'gold');
+      });
+    }
+
+    function getNextProducerMilestoneInfo(producer) {
+      const owned = getProducerOwned(producer.id);
+      const threshold = PRODUCER_UPGRADE_THRESHOLDS.find((value) => owned < value);
+      if (!threshold) return null;
+      const missing = Math.max(0, threshold - owned);
+      const cost = missing > 0 && missing <= 100 ? getProducerBulkCost(producer, missing) : getProducerCost(producer, owned) * missing;
+      return {
+        threshold,
+        missing,
+        cost,
+        label: getProducerMilestoneRewardLabel(producer.id, threshold)
+      };
+    }
+
+    function getRecommendedGoals() {
+      ensureProductionState();
+      const rates = getProductionRates();
+      const coinRate = Math.max(0.01, rates.coins || 0);
+      const goals = [];
+      if (state.goldenEvent && Number(state.goldenEvent.expiresAt || 0) > Date.now()) {
+        goals.push({ icon: '✨', title: '황금 이벤트 클릭', reason: '콤보와 순간 보상이 이어집니다.', meta: '지금 가능', urgent: true });
+      }
+      if (canHarvestGrowthCrystal()) {
+        goals.push({ icon: '💠', title: '성장 결정 수확', reason: '시설 강화와 장기 성장에 필요합니다.', meta: '지금 가능', urgent: true });
+      }
+      const affordableUpgrade = getVisibleUpgrades().find((upgrade) => !isUpgradePurchased(upgrade.id) && canBuyUpgrade(upgrade));
+      if (affordableUpgrade) {
+        goals.push({ icon: affordableUpgrade.icon || '⚡', title: affordableUpgrade.name + ' 구매', reason: '새 강화가 즉시 적용됩니다.', meta: '상점 > 강화', urgent: true });
+      }
+      const firstProducer = PRODUCERS.find((producer) => getProducerOwned(producer.id) === 0 && state.coins >= getProducerCost(producer, 0));
+      if (firstProducer) {
+        goals.push({ icon: firstProducer.icon, title: firstProducer.name + ' 첫 구매', reason: '새 생산 축이 열립니다.', meta: '지금 구매 가능', urgent: true });
+      }
+      const nearProducer = PRODUCERS.map((producer) => ({ producer, info: getNextProducerMilestoneInfo(producer) }))
+        .filter((entry) => entry.info && entry.info.missing <= 10)
+        .sort((a, b) => a.info.cost - b.info.cost)[0];
+      if (nearProducer) {
+        const shortage = Math.max(0, nearProducer.info.cost - state.coins);
+        goals.push({
+          icon: nearProducer.producer.icon,
+          title: nearProducer.producer.name + ' ' + nearProducer.info.threshold + '개 달성',
+          reason: nearProducer.info.label,
+          meta: shortage <= 0 ? '지금 가능' : '부족 ' + formatBigAmount(shortage) + ' · 약 ' + formatShortTime((shortage / coinRate) * 1000)
+        });
+      }
+      const buildableFacility = facilities.find((facility) => !state.builtFacilities[facility.id] && canBuildFacility(facility));
+      if (buildableFacility) {
+        goals.push({ icon: buildableFacility.icon, title: buildableFacility.name + ' 건설', reason: '시설 보너스와 미니게임 조건을 엽니다.', meta: '시설 탭' });
+      }
+      const levelableFacility = facilities.find((facility) => state.builtFacilities[facility.id] && getFacilityDisplayLevel(facility.id) < 5 && canPayCost(getFacilityUpgradeCostDetailed(facility.id)));
+      if (levelableFacility) {
+        goals.push({ icon: levelableFacility.icon, title: levelableFacility.name + ' 강화', reason: '시설 효과와 미니게임 가치가 커집니다.', meta: 'Lv.' + getFacilityDisplayLevel(levelableFacility.id) + ' → Lv.' + (getFacilityDisplayLevel(levelableFacility.id) + 1) });
+      }
+      const readyRaid = raids.find((raid) => canAttemptRaid(raid.id) && canEnterRaid(raid) && getRaidChance(raid) >= 60);
+      if (readyRaid) {
+        goals.push({ icon: '🐉', title: readyRaid.name + ' 도전', reason: '성공률이 60% 이상입니다.', meta: '성공률 ' + getRaidChance(readyRaid) + '%' });
+      }
+      if (canPrestige()) {
+        goals.push({ icon: '♻️', title: '환생 준비', reason: 'SP와 전설 칩으로 장기 성장을 이어갑니다.', meta: '환생 가능', urgent: true });
+      }
+      return goals.slice(0, 3);
+    }
+
+    function renderRecommendedGoals() {
+      const goals = getRecommendedGoals();
+      if (!goals.length) return '<div class="producer-desc">현재는 생산자를 더 모으면서 다음 강화 조건을 기다리면 됩니다.</div>';
+      return '<div class="recommended-goals">' + goals.map((goal) => {
+        return '<div class="ledger-item ' + (goal.urgent ? 'done' : '') + '">' +
+          '<span class="ledger-label">' + goal.icon + ' ' + escapeHtml(goal.title) + '<small>' + escapeHtml(goal.reason) + '</small></span>' +
+          '<span class="ledger-value">' + escapeHtml(goal.meta) + '</span>' +
+          '</div>';
+      }).join('') + '</div>';
     }
 
     function ensureUpgradeState() {
@@ -6044,7 +6359,7 @@
     }
 
     function getAutoClickEfficiency() {
-      return clamp((state.autoClickEfficiency || 0.35) + getUpgradeBonus('autoClickEfficiency'), 0.1, 0.85);
+      return clamp((state.autoClickEfficiency || 0.35) + getUpgradeBonus('autoClickEfficiency') + getProducerMilestoneBonus('autoClickEfficiency'), 0.1, 0.85);
     }
 
     function ensureGrowthCrystalState() {
@@ -6065,13 +6380,29 @@
     }
 
     function getGrowthCrystalDurationMs() {
-      const speed = clamp(getUpgradeBonus('crystalSpeed') + getAscensionUpgradeBonus('crystalSpeed') + getBuffBonus('crystalSpeed'), 0, 0.5);
-      return Math.max(30 * 60 * 1000, Math.round(2 * 60 * 60 * 1000 * (1 - speed)));
+      const speed = clamp(
+        getUpgradeBonus('crystalSpeed') +
+        getAscensionUpgradeBonus('crystalSpeed') +
+        getCollectionBonus('crystalSpeed') +
+        getBuffBonus('crystalSpeed'),
+        0,
+        0.4
+      );
+      return Math.max(GROWTH_CRYSTAL_MIN_MS, Math.round(GROWTH_CRYSTAL_BASE_MS * (1 - speed)));
     }
 
     function scheduleNextGrowthCrystal(now = Date.now()) {
+      const variantBonus = getUpgradeBonus('condensedCrystalChance') + getAscensionUpgradeBonus('condensedCrystalChance');
+      const variants = GROWTH_CRYSTAL_VARIANTS.map((variant) => {
+        if (variant.id === 'condensed') return { ...variant, weight: variant.weight + variantBonus * 100 };
+        return variant;
+      });
+      const variant = pickWeighted(variants);
       state.growthCrystalStartedAt = now;
       state.growthCrystalMatureAt = now + getGrowthCrystalDurationMs();
+      ensureLongLoopState();
+      state.growthCrystalState.variant = variant.id;
+      state.growthCrystalState.nextReadyAt = state.growthCrystalMatureAt;
     }
 
     function getGrowthCrystalTimeLeft() {
@@ -6092,11 +6423,17 @@
     function harvestGrowthCrystal() {
       ensureGrowthCrystalState();
       if (!canHarvestGrowthCrystal()) { showToast('아직 성장 결정이 익지 않았습니다.', 'danger'); return; }
-      state.growthCrystals += 1;
+      const variant = GROWTH_CRYSTAL_VARIANTS.find((entry) => entry.id === (state.growthCrystalState && state.growthCrystalState.variant)) || GROWTH_CRYSTAL_VARIANTS[0];
+      state.growthCrystals += variant.amount;
       state.growthCrystalHarvestedAt = Date.now();
+      state.growthCrystalState.totalHarvested = (state.growthCrystalState.totalHarvested || 0) + variant.amount;
+      state.growthCrystalState.lastHarvestAt = state.growthCrystalHarvestedAt;
+      state.growthCrystalState.amount = state.growthCrystals;
+      if (variant.id === 'shiny') addTimedBuff({ id: 'shiny_growth_crystal', name: '반짝 성장 결정', icon: '💠', type: 'globalProducer', multiplier: 0.05, durationMs: 30 * 60 * 1000, maxDurationMs: 30 * 60 * 1000, bonuses: {} });
+      if (variant.id === 'prank') addLog('🎭 장난 성장 결정이 톡 튀었다. 단톡방에 “이거 진짜 보상 맞냐”는 말이 올라왔다.', 'event');
       scheduleNextGrowthCrystal();
-      addLog('💠 성장 결정 1개를 수확했다. 장기 강화 재료가 쌓였다.', 'success');
-      showToast('💠 성장 결정 +1', 'gold');
+      addLog(variant.icon + ' ' + variant.name + ' 수확. 성장 결정 +' + variant.amount + '개', 'success');
+      showToast(variant.icon + ' 성장 결정 +' + variant.amount, 'gold');
       afterStateChange();
     }
 
@@ -6151,15 +6488,25 @@
       ensureLegendChipState();
       const coinBased = Math.floor(Math.sqrt(Math.max(0, state.lifetimeCoinsEarned || 0) / 100000));
       const levelBased = Math.max(0, Math.floor((state.level - 45) / 5));
-      return Math.max(0, coinBased + levelBased - (state.totalLegendChips || 0));
+      const baseGain = Math.max(0, coinBased + levelBased - (state.totalLegendChips || 0));
+      return Math.max(0, Math.floor(baseGain * (1 + getProducerMilestoneBonus('prestigeReward'))));
     }
 
     const ASCENSION_UPGRADES = [
       { id: 'legend_first_step', name: '전설의 첫 발자국', icon: '🌟', cost: 1, desc: '전체 생산 +5%', effect: { globalProduction: 0.05 } },
+      { id: 'new_run_supply', name: '새 회차 준비', icon: '🎒', cost: 1, desc: '환생 후 시작 코인 +100, 시작 체력 +10', effect: { startCoins: 100, startEnergy: 10 } },
+      { id: 'quick_adaptation', name: '빠른 적응', icon: '⚡', cost: 2, desc: 'Lv.10 전까지 행동 XP +10%', effect: { earlyActionExp: 0.10 } },
       { id: 'remembered_click', name: '기억나는 손맛', icon: '👆', cost: 2, desc: '클릭 보상 +10%', effect: { clickMultiplier: 0.10 } },
-      { id: 'golden_instinct', name: '황금 감각', icon: '✨', cost: 4, desc: '황금 이벤트 보상 +10%', effect: { goldenReward: 0.10 } },
+      { id: 'golden_instinct', name: '황금 감각 계승', icon: '✨', cost: 2, desc: '황금 이벤트 등장 간격 -5%', effect: { goldenIntervalReduction: 0.05 } },
+      { id: 'golden_reward_memory', name: '황금 보상 기억', icon: '🌟', cost: 4, desc: '황금 이벤트 보상 +10%', effect: { goldenReward: 0.10 } },
+      { id: 'facility_blueprint', name: '시설 설계도 보존', icon: '🏠', cost: 2, desc: '시설 건설 비용 -5%', effect: { facilityCostReduction: 0.05 } },
+      { id: 'producer_memory', name: '자동화 기억', icon: '🏭', cost: 3, desc: '생산자 비용 -3%', effect: { producerCostReduction: 0.03 } },
+      { id: 'clip_archive_legacy', name: '흑역사 보관함', icon: '📼', cost: 2, desc: '도감 수집 보너스 +5%', effect: { collectionBonus: 0.05 } },
+      { id: 'friend_network_legacy', name: '인맥 계승', icon: '👥', cost: 2, desc: '친구 관계도 획득 +10%', effect: { friendXp: 0.10 } },
+      { id: 'raid_sense_legacy', name: '레이드 감각', icon: '🐉', cost: 3, desc: '레이드 성공률 +2%p', effect: { raidChance: 2 } },
       { id: 'fan_inheritance', name: '팬심 계승', icon: '🐱', cost: 5, desc: '팬심 보너스 +10%', effect: { fanMultiplier: 0.10 } },
-      { id: 'crystal_research', name: '성장 결정 연구', icon: '💠', cost: 8, desc: '성장 결정 성장 시간 -10%', effect: { crystalSpeed: 0.10 } }
+      { id: 'crystal_research', name: '성장 결정 연구', icon: '💠', cost: 8, desc: '성장 결정 성장 시간 -10%', effect: { crystalSpeed: 0.10 } },
+      { id: 'condensed_sense', name: '응축 감각', icon: '💎', cost: 5, desc: '응축 성장 결정 확률 소폭 증가', effect: { condensedCrystalChance: 0.015 } }
     ];
 
     function isAscensionUpgradePurchased(id) {
@@ -6307,7 +6654,8 @@
     }
 
     function getProducerCost(producer, owned = getProducerOwned(producer.id)) {
-      return Math.ceil(producer.baseCost * Math.pow(producer.costGrowth * BALANCE.producerCostGrowthMultiplier, owned));
+      const reduction = clamp(getAscensionUpgradeBonus('producerCostReduction') + getMentorBonus('producerCostReduction'), 0, 0.25);
+      return Math.ceil(producer.baseCost * Math.pow(producer.costGrowth * BALANCE.producerCostGrowthMultiplier, owned) * (1 - reduction));
     }
 
     function getProducerBulkCost(producer, count) {
@@ -6334,12 +6682,14 @@
       ensureProductionState();
       const producer = getProducer(producerId);
       if (!producer) return;
-      const count = mode === 'max' ? getMaxAffordableProducerCount(producer) : (mode === 'ten' ? 10 : 1);
+      const selected = mode === 'selected' ? state.bulkBuyMode : mode;
+      const count = selected === 'max' ? getMaxAffordableProducerCount(producer) : (selected === 'ten' ? 10 : selected === 'twentyfive' ? 25 : selected === 'hundred' ? 100 : Number(selected) || 1);
       if (count <= 0) { showToast('코인이 부족합니다.', 'danger'); return; }
       const cost = getProducerBulkCost(producer, count);
       if (state.coins < cost) { showToast('코인이 부족합니다.', 'danger'); return; }
       state.coins -= cost;
       state.producers[producer.id] = getProducerOwned(producer.id) + count;
+      checkProducerMilestones(producer.id);
       addLog(producer.icon + ' ' + producer.name + ' ' + count + '개 구매. 자동 생산이 커졌다.', 'success');
       showToast(producer.name + ' +' + count, 'gold');
       afterStateChange();
@@ -6360,10 +6710,11 @@
     }
 
     function getProducerUpgradeCost(producer, threshold) {
-      const baseTenCost = Array.from({ length: 10 }, (_, i) =>
-        Math.ceil(producer.baseCost * Math.pow(producer.costGrowth, i) * BALANCE.producerCostGrowthMultiplier)
-      ).reduce((sum, cost) => sum + cost, 0);
-      return Math.ceil(baseTenCost * 0.35 * Math.pow(threshold / 10, 1.15));
+      const ownedBase = Math.max(0, threshold);
+      const nextTenCost = Array.from({ length: 10 }, (_, i) => getProducerCost(producer, ownedBase + i))
+        .reduce((sum, cost) => sum + cost, 0);
+      const tierFactor = threshold >= 500 ? 0.8 : threshold >= 100 ? 0.65 : 0.5;
+      return Math.ceil(nextTenCost * tierFactor);
     }
 
     function buyProducerUpgrade(producerId, threshold) {
@@ -6381,18 +6732,21 @@
     }
 
     function getProducerUpgradeMultiplier(producerId) {
-      return PRODUCER_UPGRADE_THRESHOLDS.reduce((factor, threshold) => {
-        return factor * (hasProducerUpgrade(producerId, threshold) ? 2 : 1);
-      }, 1);
+      let count = 0;
+      PRODUCER_UPGRADE_THRESHOLDS.forEach((threshold) => {
+        if (hasProducerUpgrade(producerId, threshold)) count += 1;
+      });
+      if (count <= 0) return 1;
+      return PRODUCER_UPGRADE_MULTIPLIER_STEPS[Math.min(count, PRODUCER_UPGRADE_MULTIPLIER_STEPS.length) - 1] || 10;
     }
 
     function getProducerUpgradeGlobalBonus() {
       return PRODUCERS.reduce((sum, producer) => {
         return sum +
-          (hasProducerUpgrade(producer.id, 50) ? 0.05 : 0) +
-          (hasProducerUpgrade(producer.id, 200) ? 0.10 : 0) +
-          (hasProducerUpgrade(producer.id, 500) ? 0.15 : 0) +
-          (hasProducerUpgrade(producer.id, 1000) ? 0.25 : 0);
+          (hasProducerUpgrade(producer.id, 50) ? 0.01 : 0) +
+          (hasProducerUpgrade(producer.id, 200) ? 0.02 : 0) +
+          (hasProducerUpgrade(producer.id, 500) ? 0.03 : 0) +
+          (hasProducerUpgrade(producer.id, 1000) ? 0.05 : 0);
       }, 0);
     }
 
@@ -6434,6 +6788,7 @@
         getProducerUpgradeGlobalBonus() +
         getBuffBonus('globalProduction') +
         getTitleBonus('globalProduction') +
+        getCollectionBonus('globalProduction') +
         getPassiveProductionBonus('globalProduction');
       return Math.max(0.1, 1 + bonus) * getFanMultiplier();
     }
@@ -6445,10 +6800,25 @@
         getBuffBonus('producer_' + outputKey) +
         getSeasonBonus('producer_' + outputKey) +
         getSeasonBonus('producer_' + producer.category) +
+        getUpgradeBonus('producer_' + outputKey) +
+        getUpgradeBonus('producer_' + producer.category) +
+        getProducerMilestoneBonus('producer_' + outputKey) +
+        getProducerMilestoneBonus('producer_' + producer.category) +
+        getMentorBonus('producer_' + outputKey) +
+        getMentorBonus('producer_' + producer.category) +
+        getActiveFacilityOperationBonus('producer_' + outputKey) +
+        getActiveFacilityOperationBonus('producer_' + producer.category) +
         getFacilityProductionBonus(producer, outputKey) +
         getProducerSynergyBonus(producer, outputKey) +
         getProducerLevelBonus(producer.id);
       return getGlobalProductionMultiplier() * getActiveBuffMultiplier('globalProducer') * (1 + additive) * getProducerUpgradeMultiplier(producer.id);
+    }
+
+    function getProducerExpDampeningByLevel() {
+      if (state.level < 25) return 1;
+      if (state.level < 40) return 0.75;
+      if (state.level < 50) return 0.55;
+      return 0.4;
     }
 
     function getProductionRates() {
@@ -6461,10 +6831,11 @@
         if (!owned) return;
         Object.entries(producer.outputs).forEach(([key, value]) => {
           if (!(key in rates)) return;
-          rates[key] += value * owned * BALANCE.producerOutputMultiplier * getProducerOutputMultiplier(producer, key);
+          const effectiveValue = key === 'exp' ? value * getProducerExpDampeningByLevel() : value;
+          rates[key] += effectiveValue * owned * BALANCE.producerOutputMultiplier * getProducerOutputMultiplier(producer, key);
         });
       });
-      rates.crystalChance += getSeasonBonus('crystalChance');
+      rates.crystalChance += getSeasonBonus('crystalChance') + getProducerMilestoneBonus('crystalChance');
       return rates;
     }
 
@@ -6544,9 +6915,9 @@
       ensureProductionState();
       const now = Date.now();
       if (state.goldenEvent && Number(state.goldenEvent.expiresAt || 0) > now) {
-        return state.goldenEvent.label + ' ' + Math.ceil((state.goldenEvent.expiresAt - now) / 1000) + '초';
+        return state.goldenEvent.label + ' ' + Math.ceil((state.goldenEvent.expiresAt - now) / 1000) + '초 · 콤보 x' + ((state.goldenCombo && state.goldenCombo.chain) || 0);
       }
-      return '다음 ' + Math.max(0, Math.ceil(((state.goldenEventStats.nextAt || now) - now) / 1000)) + '초';
+      return '다음 ' + Math.max(0, Math.ceil(((state.goldenEventStats.nextAt || now) - now) / 1000)) + '초 · 최고 콤보 ' + ((state.goldenCombo && state.goldenCombo.bestChain) || 0);
     }
 
     function applyProductionUtilityTick() {
@@ -6616,10 +6987,11 @@
       if (now - (state.clipSearchLastAt || 0) < 30000) return false;
       const drone = state.clipSearchDroneLevel || 0;
       const detectorActive = (state.clipDetectorUntil || 0) > now;
-      if (!drone && !detectorActive) return false;
+      const passiveBoost = getCollectionBonus('clipDiscovery') + getUpgradeBonus('clipDiscovery') + getMentorBonus('clipDiscovery') + getActiveFacilityOperationBonus('clipDiscovery');
+      if (!drone && !detectorActive && passiveBoost <= 0) return false;
       state.clipSearchLastAt = now;
       const facilityBoost = state.builtFacilities && state.builtFacilities.clip_studio ? 0.012 : 0;
-      const chance = Math.min(0.12, drone * 0.008 + (detectorActive ? 0.035 : 0) + facilityBoost);
+      const chance = Math.min(0.12, drone * 0.008 + (detectorActive ? 0.035 : 0) + facilityBoost + passiveBoost);
       if (Math.random() >= chance) return false;
       const unowned = clipCatalog.filter((clip) => !(state.clipCollection && state.clipCollection[clip.id]));
       const clip = unowned[Math.floor(Math.random() * unowned.length)];
@@ -6682,35 +7054,54 @@
       if (!event || Number(event.expiresAt || 0) <= Date.now()) { state.goldenEvent = null; renderGoldenEvent(); return; }
       const rates = getProductionRates();
       const oneShotBonus = state.nextGoldenRewardBonus || 0;
-      const rewardBonus = 1 + (state.goldenRewardBonus || 0) + getBuffBonus('goldenReward') + getTitleBonus('goldenReward') + getUpgradeBonus('goldenReward') + getAscensionUpgradeBonus('goldenReward') + getSeasonBonus('goldenReward') + (state.goldenDetectorLevel || 0) * 0.05 + oneShotBonus + Math.min(0.5, (state.luck || 0) * 0.003);
+      updateGoldenCombo(event.type);
+      const comboBonus = getGoldenComboBonus();
+      const rewardBonus = 1 + (state.goldenRewardBonus || 0) + getBuffBonus('goldenReward') + getTitleBonus('goldenReward') + getUpgradeBonus('goldenReward') + getAscensionUpgradeBonus('goldenReward') + getSeasonBonus('goldenReward') + getCollectionBonus('goldenReward') + (state.goldenDetectorLevel || 0) * 0.05 + oneShotBonus + comboBonus + Math.min(0.5, (state.luck || 0) * 0.003);
+      const durationBonus = getUpgradeBonus('goldenDurationMs') + (state.goldenDetectorLevel || 0) * 2000;
       let chainEvent = null;
-      if (event.type === 'frenzy') {
-        addTimedBuff({ id: 'golden_frenzy', name: '황금 프렌지', icon: '✨', type: 'globalProducer', multiplier: 2, durationMs: 60000, maxDurationMs: 120000, bonuses: {} });
-        showToast('✨ 황금 프렌지: 생산 x3', 'gold');
-      } else if (event.type === 'lucky') {
-        const amount = Math.max(80, Math.round((Math.min((state.coins || 0) * 0.15, rates.coins * 900) + 120) * rewardBonus));
+      if (event.type === 'munki_frenzy' || event.type === 'frenzy') {
+        addTimedBuff({ id: 'golden_munki_frenzy', name: '문키 프렌지', icon: '✨', type: 'globalProducer', multiplier: 0.77, durationMs: 77000 + durationBonus, maxDurationMs: 154000, bonuses: {} });
+        showToast('✨ 문키 프렌지: 생산 +77%', 'gold');
+      } else if (event.type === 'lucky_munki' || event.type === 'lucky') {
+        const amount = Math.max(120, Math.round((Math.min((state.coins || 0) * 0.15, rates.coins * 900) + 180) * rewardBonus));
         addCoins(amount);
-        showToast('🪙 럭키 문키 +' + formatBigAmount(amount), 'gold');
-      } else if (event.type === 'click_frenzy') {
-        addTimedBuff({ id: 'golden_click_frenzy', name: '클릭 광란', icon: '👆', type: 'click', multiplier: 0, durationMs: 20000, maxDurationMs: 40000, bonuses: { manualClickMultiplier: 4, autoClickMultiplier: 1 } });
-        showToast('👆 클릭 광란 20초', 'gold');
+        showToast('🪙 알바 대박 +' + formatBigAmount(amount), 'gold');
+      } else if (event.type === 'finger_awaken' || event.type === 'click_frenzy') {
+        addTimedBuff({ id: 'golden_finger_awaken', name: '손가락 각성', icon: '👆', type: 'click', multiplier: 0, durationMs: 20000 + durationBonus, maxDurationMs: 45000, bonuses: { manualClickMultiplier: 6, autoClickMultiplier: 1.1 } });
+        showToast('👆 손가락 각성 20초', 'gold');
+      } else if (event.type === 'routine_surge') {
+        addTimedBuff({ id: 'golden_routine_surge', name: '루틴 폭주', icon: '📚', type: 'globalProducer', multiplier: 0, durationMs: 60000 + durationBonus, maxDurationMs: 120000, bonuses: { producer_exp: 0.35, producer_knowledge: 0.35, producer_fitness: 0.35, producer_charm: 0.35, producer_focus: 0.35 } });
+        showToast('📚 루틴 폭주: XP/스탯 생산 +35%', 'gold');
       } else if (event.type === 'building_special') {
         const owned = PRODUCERS.filter((producer) => getProducerOwned(producer.id) > 0);
         const producer = owned[Math.floor(Math.random() * owned.length)] || PRODUCERS[0];
-        addTimedBuff({ id: 'golden_' + producer.id, name: producer.name + ' 폭주', icon: producer.icon, type: 'producer', producerId: producer.id, multiplier: 6, durationMs: 60000, maxDurationMs: 120000 });
-        showToast(producer.icon + ' ' + producer.name + ' x7', 'gold');
+        addTimedBuff({ id: 'golden_' + producer.id, name: producer.name + ' 폭주', icon: producer.icon, type: 'producer', producerId: producer.id, multiplier: 5, durationMs: 60000 + durationBonus, maxDurationMs: 120000 });
+        showToast(producer.icon + ' ' + producer.name + ' x6', 'gold');
       } else if (event.type === 'golden_chain') {
-        const chain = Math.min(5, Number(event.chain || 1));
+        const chain = Math.min(8, Math.max(1, Number(event.chain || state.goldenCombo.chain || 1)));
         const amount = Math.max(80, Math.round((rates.coins * 120 + 100) * chain * rewardBonus));
         addCoins(amount);
         showToast('⛓️ 황금 체인 x' + chain + ' +' + formatBigAmount(amount), 'gold');
-        if (chain < 5 && Math.random() < 0.3) {
-          chainEvent = { ...event, chain: chain + 1, expiresAt: Date.now() + 7000 };
+        if (chain < 8 && Math.random() < 0.3) {
+          chainEvent = { ...event, chain: chain + 1, expiresAt: Date.now() + 7000 + Math.min(3000, durationBonus) };
         }
+      } else if (event.type === 'facility_overheat') {
+        const activeOps = Object.values(state.facilityOperationUntil || {}).filter((until) => Number(until || 0) > Date.now()).length;
+        addTimedBuff({ id: 'golden_facility_overheat', name: '시설 과열', icon: '🏠', type: 'globalProducer', multiplier: 0, durationMs: 60000 + durationBonus, maxDurationMs: 120000, bonuses: { facilityPower: 0.20 + (activeOps ? 0.10 : 0) } });
+        showToast('🏠 시설 과열: 시설 보너스 강화', 'gold');
       } else if (event.type === 'sweet_growth') {
         if (state.growthCrystalUnlocked) {
-          state.growthCrystals += 1;
-          showToast('💠 성장 결정 +1', 'gold');
+          if (Math.random() < 0.18) {
+            state.growthCrystals += 1;
+            ensureLongLoopState();
+            state.growthCrystalState.amount = state.growthCrystals;
+            showToast('💠 성장 결정 +1', 'gold');
+          } else {
+            state.growthCrystalMatureAt = Math.max(Date.now(), (state.growthCrystalMatureAt || Date.now()) - 45 * 60 * 1000);
+            ensureLongLoopState();
+            state.growthCrystalState.nextReadyAt = state.growthCrystalMatureAt;
+            showToast('💠 성장 결정 시간이 단축됐다', 'gold');
+          }
         } else {
           const amount = Math.max(50, Math.round(rates.exp * 180 * rewardBonus));
           gainExp(amount);
@@ -6727,7 +7118,7 @@
       state.goldenEventStats.clicked += 1;
       if (oneShotBonus > 0) state.nextGoldenRewardBonus = 0;
       state.goldenEvent = chainEvent;
-      addLog(event.icon + ' 황금 이벤트 클릭: ' + event.label, 'success');
+      addLog(event.icon + ' 황금 이벤트 클릭: ' + event.label + ' · 콤보 x' + (state.goldenCombo.chain || 1), 'success');
       afterStateChange();
     }
 
@@ -6745,9 +7136,268 @@
 
     function getFacilityBonus(key) {
       if (!state || !state.builtFacilities) return 0;
-      return facilities.reduce((total, facility) => {
-        return total + (state.builtFacilities[facility.id] ? (facility.effect[key] || 0) : 0);
+      const raw = facilities.reduce((total, facility) => {
+        if (!state.builtFacilities[facility.id]) return total;
+        const displayLevel = getFacilityDisplayLevel(facility.id);
+        const levelMult = displayLevel >= 5 ? 3.0 : displayLevel >= 4 ? 2.2 : displayLevel >= 3 ? 1.7 : displayLevel >= 2 ? 1.3 : 1.0;
+        return total + (facility.effect[key] || 0) * levelMult;
       }, 0);
+      const operation = getActiveFacilityOperationBonus(key);
+      const facilityPower = getBuffBonus('facilityPower');
+      const capped = ['challengeChance','critChance','raidChance'].includes(key)
+        ? Math.min(key === 'critChance' ? 5 : 8, raw + operation)
+        : (raw + operation) * (1 + facilityPower);
+      return capped;
+    }
+
+    const FACILITY_OPERATION_DURATION_MS = 30 * 60 * 1000;
+    const FACILITY_OPERATION_MAX_MS = 60 * 60 * 1000;
+    const FACILITY_OPERATION_CONFIG = {
+      study_room: { cost: { knowledge: 80, focus: 40 }, bonuses: { producer_knowledge: 0.10, producer_exp: 0.10 }, label: '지식/XP 생산 강화' },
+      home_gym: { cost: { fitness: 80, energy: 25 }, bonuses: { producer_fitness: 0.15, rest: 0.10 }, label: '운동 생산과 회복 강화' },
+      stream_setup: { cost: { charm: 70, fame: 60 }, bonuses: { producer_social: 0.10, eventReward: 0.05 }, label: '사회 생산과 이벤트 보상 강화' },
+      focus_room: { cost: { focus: 100, knowledge: 50 }, bonuses: { challengeChance: 2, projectExp: 0.10 }, label: '도전/프로젝트 집중 운영' },
+      chat_kingdom: { cost: { fame: 100, charm: 50 }, bonuses: { friendXp: 0.10, producer_social: 0.10 }, label: '친구 관계도와 명성 생산 강화' },
+      lucky_charm_box: { cost: { luck: 10, coins: 500 }, bonuses: { goldenReward: 0.05, critChance: 1 }, label: '황금 보상과 치명타 감각 강화' },
+      work_agency: { cost: { fame: 50, coins: 500 }, bonuses: { producer_coins: 0.10 }, label: '코인 생산 운영' },
+      rest_capsule: { cost: { fitness: 60, mood: 30 }, bonuses: { rest: 0.15, offlineReward: 0.10 }, label: '휴식과 오프라인 보상 강화' },
+      chat_server: { cost: { fame: 80, charm: 40 }, bonuses: { friendXp: 0.08, producer_social: 0.08 }, label: '단톡방 자동 반응 강화' },
+      clip_studio: { cost: { fame: 120, luck: 15 }, bonuses: { clipDiscovery: 0.05 }, label: '도감 발견률 강화' },
+      auto_training: { cost: { knowledge: 50, fitness: 50, charm: 50, focus: 50 }, bonuses: { producer_knowledge: 0.05, producer_fitness: 0.05, producer_charm: 0.05, producer_focus: 0.05 }, label: '자동 스탯 생산 강화' }
+    };
+
+    function getActiveFacilityOperationBonus(key) {
+      ensureLongLoopState();
+      const now = Date.now();
+      return Object.entries(state.facilityOperationUntil || {}).reduce((sum, [facilityId, until]) => {
+        if (Number(until || 0) <= now) return sum;
+        const config = FACILITY_OPERATION_CONFIG[facilityId];
+        if (!config) return sum;
+        const levelMult = 1 + Math.max(0, getFacilityDisplayLevel(facilityId) - 1) * 0.15;
+        return sum + Number((config.bonuses || {})[key] || 0) * levelMult;
+      }, 0);
+    }
+
+    function canPayCost(cost) {
+      return Object.entries(cost || {}).every(([key, value]) => {
+        const current = key === 'coins' ? state.coins : key === 'gems' ? state.gems : key === 'growthCrystals' ? state.growthCrystals : (state[key] || 0);
+        return current >= value;
+      });
+    }
+
+    function payGenericCost(cost) {
+      Object.entries(cost || {}).forEach(([key, value]) => {
+        if (key === 'coins') state.coins = Math.max(0, state.coins - value);
+        else if (key === 'gems') state.gems = Math.max(0, state.gems - value);
+        else if (key === 'growthCrystals') state.growthCrystals = Math.max(0, state.growthCrystals - value);
+        else changeStat(key, -value, false);
+      });
+      ensureLongLoopState();
+      state.growthCrystalState.amount = state.growthCrystals || 0;
+    }
+
+    function formatGenericCost(cost) {
+      return Object.entries(cost || {}).map(([key, value]) => {
+        const shown = key === 'coins' ? formatBigAmount(value) : value;
+        return formatStatName(key) + ' ' + shown;
+      }).join(' · ');
+    }
+
+    function getFacilityUpgradeCostDetailed(facilityId) {
+      const level = getFacilityDisplayLevel(facilityId);
+      const maps = [
+        null,
+        { growthCrystals: 1, coins: 300 },
+        { growthCrystals: 2, coins: 900 },
+        { growthCrystals: 3, coins: 2500 },
+        { growthCrystals: 5, coins: 8000 }
+      ];
+      const base = { ...(maps[level] || {}) };
+      const statPairs = {
+        study_room: ['knowledge', 'focus'],
+        home_gym: ['fitness', 'energy'],
+        stream_setup: ['charm', 'fame'],
+        focus_room: ['focus', 'knowledge'],
+        chat_kingdom: ['fame', 'charm'],
+        lucky_charm_box: ['luck', 'coins'],
+        work_agency: ['coins', 'fame'],
+        rest_capsule: ['fitness', 'mood'],
+        chat_server: ['fame', 'charm'],
+        clip_studio: ['fame', 'luck'],
+        auto_training: ['knowledge', 'fitness']
+      };
+      const pair = statPairs[facilityId] || ['knowledge', 'focus'];
+      const primaryCosts = [0, 120, 260, 550, 1200];
+      const secondaryCosts = [0, 0, 120, 260, 550];
+      if (level >= 1 && pair[0] !== 'coins') base[pair[0]] = (base[pair[0]] || 0) + primaryCosts[level];
+      if (level >= 2 && pair[1] !== 'coins') base[pair[1]] = (base[pair[1]] || 0) + secondaryCosts[level];
+      return base;
+    }
+
+    function levelUpFacilityDeep(facilityId) {
+      ensureGrowthCrystalState();
+      const facility = facilities.find((entry) => entry.id === facilityId);
+      const level = getFacilityDisplayLevel(facilityId);
+      if (!facility || !state.builtFacilities[facilityId] || level <= 0 || level >= 5) return;
+      const cost = getFacilityUpgradeCostDetailed(facilityId);
+      if (!canPayCost(cost)) { showToast('시설 강화 재료가 부족합니다.', 'danger'); return; }
+      payGenericCost(cost);
+      state.facilityLevels[facilityId] = Math.max(0, (state.facilityLevels[facilityId] || 0) + 1);
+      addLog('🏠 시설 강화: ' + facility.name + ' Lv.' + getFacilityDisplayLevel(facilityId) + ' 달성', 'success');
+      afterStateChange();
+    }
+
+    function startFacilityOperation(facilityId) {
+      ensureLongLoopState();
+      const facility = facilities.find((entry) => entry.id === facilityId);
+      const config = FACILITY_OPERATION_CONFIG[facilityId];
+      if (!facility || !config || !state.builtFacilities[facilityId]) return;
+      const level = Math.max(1, getFacilityDisplayLevel(facilityId));
+      const cost = {};
+      Object.entries(config.cost).forEach(([key, value]) => { cost[key] = Math.ceil(value * (1 + (level - 1) * 0.35)); });
+      if (!canPayCost(cost)) { showToast('시설 운영 비용이 부족합니다.', 'danger'); return; }
+      payGenericCost(cost);
+      const now = Date.now();
+      const currentLeft = Math.max(0, Number(state.facilityOperationUntil[facilityId] || 0) - now);
+      state.facilityOperationUntil[facilityId] = now + Math.min(FACILITY_OPERATION_MAX_MS, currentLeft + FACILITY_OPERATION_DURATION_MS);
+      state.facilityOperationStats[facilityId] = (state.facilityOperationStats[facilityId] || 0) + 1;
+      addLog('🏠 시설 운영 시작: ' + facility.name + ' · ' + config.label, 'success');
+      afterStateChange();
+    }
+
+    function isRoutineGardenUnlocked() {
+      return getFacilityDisplayLevel('study_room') >= 2 || getFacilityDisplayLevel('rest_capsule') >= 2;
+    }
+
+    function isMemeExchangeUnlocked() {
+      return getFacilityDisplayLevel('stream_setup') >= 2 || getFacilityDisplayLevel('chat_kingdom') >= 2 || getProducerOwned('meme_factory') >= 10;
+    }
+
+    function isMentorSlotsUnlocked() {
+      return state.prestige >= 1 || getFacilityDisplayLevel('focus_room') >= 3 || getProducerOwned('legend_lab') >= 5;
+    }
+
+    function isFocusBookUnlocked() {
+      return getFacilityDisplayLevel('focus_room') >= 2 || getProducerOwned('project_studio') >= 10;
+    }
+
+    const ROUTINE_SEEDS = {
+      study: { name: '공부 루틴', icon: '📚', durationMs: 10 * 60 * 1000, reward: () => { changeStat('knowledge', 20); changeStat('focus', 8); gainExp(35); } },
+      workout: { name: '운동 루틴', icon: '💪', durationMs: 15 * 60 * 1000, reward: () => { changeStat('fitness', 24); changeStat('energy', 15); gainExp(25); } },
+      rest: { name: '휴식 루틴', icon: '😴', durationMs: 12 * 60 * 1000, reward: () => { changeStat('energy', 35); changeStat('mood', 25); } },
+      meme: { name: '밈 루틴', icon: '📣', durationMs: 20 * 60 * 1000, reward: () => { changeStat('fame', 18); changeStat('charm', 8); if (Math.random() < 0.12) state.growthCrystalMatureAt = Math.max(Date.now(), (state.growthCrystalMatureAt || Date.now()) - 10 * 60 * 1000); } }
+    };
+
+    function plantRoutineSeed(slot, seedId) {
+      ensureLongLoopState();
+      if (!isRoutineGardenUnlocked()) { showToast('루틴 정원이 아직 잠겨 있습니다.', 'danger'); return; }
+      const idx = Number(slot);
+      const seed = ROUTINE_SEEDS[seedId];
+      if (!seed || idx < 0 || idx >= 3 || state.facilityMiniGames.routineGarden.slots[idx]) return;
+      state.facilityMiniGames.routineGarden.slots[idx] = { seedId, plantedAt: Date.now(), readyAt: Date.now() + seed.durationMs };
+      addLog(seed.icon + ' 루틴 정원에 ' + seed.name + '을 심었다.', 'event');
+      afterStateChange();
+    }
+
+    function harvestRoutineSeed(slot) {
+      ensureLongLoopState();
+      const idx = Number(slot);
+      const entry = state.facilityMiniGames.routineGarden.slots[idx];
+      if (!entry) return;
+      const seed = ROUTINE_SEEDS[entry.seedId];
+      if (!seed || Date.now() < Number(entry.readyAt || 0)) { showToast('아직 수확 시간이 아닙니다.', 'danger'); return; }
+      seed.reward();
+      state.facilityMiniGames.routineGarden.slots[idx] = null;
+      addLog(seed.icon + ' 루틴 수확: ' + seed.name, 'success');
+      afterStateChange();
+    }
+
+    function updateMemeExchangePrice(now = Date.now()) {
+      ensureLongLoopState();
+      const market = state.facilityMiniGames.memeExchange;
+      if (now < Number(market.nextAt || 0)) return;
+      const trend = 0.82 + Math.random() * 0.42;
+      market.price = Math.max(30, Math.round((market.price || 100) * trend));
+      market.nextAt = now + 5 * 60 * 1000;
+    }
+
+    function buyMemeToken() {
+      updateMemeExchangePrice();
+      const market = state.facilityMiniGames.memeExchange;
+      if (!isMemeExchangeUnlocked()) { showToast('밈 거래소가 잠겨 있습니다.', 'danger'); return; }
+      if (state.coins < market.price) { showToast('밈 토큰 구매 코인이 부족합니다.', 'danger'); return; }
+      state.coins -= market.price;
+      market.tokens = (market.tokens || 0) + 1;
+      addLog('📈 밈 토큰 1개 구매. 현재 시세 ' + formatBigAmount(market.price) + '코인', 'event');
+      afterStateChange();
+    }
+
+    function sellMemeToken() {
+      updateMemeExchangePrice();
+      const market = state.facilityMiniGames.memeExchange;
+      if ((market.tokens || 0) <= 0) return;
+      market.tokens -= 1;
+      const payout = Math.round(market.price * (0.9 + Math.random() * 0.25));
+      addCoins(payout);
+      changeStat('fame', Math.max(1, Math.floor(payout / 200)));
+      addLog('📈 밈 토큰 판매. 코인 +' + formatBigAmount(payout), 'success');
+      afterStateChange();
+    }
+
+    const MENTOR_OPTIONS = [
+      { id: 'study', name: '공부 멘토', icon: '📚', desc: '지식/XP 생산 +5%', bonuses: { producer_knowledge: 0.05, producer_exp: 0.05 } },
+      { id: 'workout', name: '운동 멘토', icon: '💪', desc: '운동/회복 +5%', bonuses: { producer_fitness: 0.05, rest: 0.05 } },
+      { id: 'broadcast', name: '방송 멘토', icon: '📣', desc: '명성/도감 발견 +5%', bonuses: { producer_social: 0.05, clipDiscovery: 0.05 } },
+      { id: 'raid', name: '레이드 멘토', icon: '🐉', desc: '레이드 성공률 +3%p', bonuses: { raidChance: 3 } },
+      { id: 'saving', name: '절약 멘토', icon: '🪙', desc: '생산자 비용 -3%', bonuses: { producerCostReduction: 0.03 } }
+    ];
+
+    function getMentorSlotCount() {
+      return Math.min(3, 1 + Math.floor((state.prestige || 0) / 2) + (getFacilityDisplayLevel('focus_room') >= 4 ? 1 : 0));
+    }
+
+    function toggleMentorSlot(mentorId) {
+      ensureLongLoopState();
+      if (!isMentorSlotsUnlocked()) { showToast('멘토 슬롯이 아직 잠겨 있습니다.', 'danger'); return; }
+      const equipped = state.facilityMiniGames.mentorSlots.equipped;
+      if (equipped.includes(mentorId)) {
+        state.facilityMiniGames.mentorSlots.equipped = equipped.filter((id) => id !== mentorId);
+      } else {
+        if (equipped.length >= getMentorSlotCount()) { showToast('멘토 슬롯이 가득 찼습니다.', 'danger'); return; }
+        state.facilityMiniGames.mentorSlots.equipped.push(mentorId);
+      }
+      afterStateChange();
+    }
+
+    function getMentorBonus(key) {
+      ensureLongLoopState();
+      return (state.facilityMiniGames.mentorSlots.equipped || []).reduce((sum, id) => {
+        const mentor = MENTOR_OPTIONS.find((entry) => entry.id === id);
+        return sum + Number(mentor && mentor.bonuses[key] || 0);
+      }, 0);
+    }
+
+    const FOCUS_BOOK_SPELLS = {
+      click: { name: '손맛 집중', icon: '👆', cost: { focus: 60, mood: 8 }, cooldownMs: 5 * 60 * 1000, run: () => addTimedBuff({ id: 'focus_book_click', name: '손맛 집중', icon: '👆', type: 'click', multiplier: 0.5, durationMs: 30000, maxDurationMs: 30000, bonuses: { click: 0.5 } }) },
+      xp: { name: '성장 집중', icon: '✨', cost: { focus: 75, knowledge: 35 }, cooldownMs: 8 * 60 * 1000, run: () => addTimedBuff({ id: 'focus_book_xp', name: '성장 집중', icon: '✨', type: 'globalProducer', multiplier: 0, durationMs: 60000, maxDurationMs: 60000, bonuses: { producer_exp: 0.20 } }) },
+      golden: { name: '황금 예감', icon: '🌟', cost: { focus: 90, luck: 3 }, cooldownMs: 10 * 60 * 1000, run: () => { state.nextGoldenRewardBonus = Math.min(1, (state.nextGoldenRewardBonus || 0) + 0.25); } },
+      raid: { name: '레이드 집중', icon: '🐉', cost: { focus: 100, knowledge: 40 }, cooldownMs: 10 * 60 * 1000, run: () => addRaidBoost('general', 1) }
+    };
+
+    function castFocusBookSpell(spellId) {
+      ensureLongLoopState();
+      if (!isFocusBookUnlocked()) { showToast('집중 스킬북이 잠겨 있습니다.', 'danger'); return; }
+      const spell = FOCUS_BOOK_SPELLS[spellId];
+      if (!spell) return;
+      const last = Number(state.facilityMiniGames.focusBook[spellId] || 0);
+      const remaining = spell.cooldownMs - (Date.now() - last);
+      if (remaining > 0) { showToast(formatShortTime(remaining) + ' 후 사용할 수 있습니다.', 'danger'); return; }
+      if (!canPayCost(spell.cost)) { showToast('스킬 비용이 부족합니다.', 'danger'); return; }
+      payGenericCost(spell.cost);
+      spell.run();
+      state.facilityMiniGames.focusBook[spellId] = Date.now();
+      addLog(spell.icon + ' 집중 스킬 사용: ' + spell.name, 'success');
+      afterStateChange();
     }
 
     function showIdleFacilityFloat(text) {
@@ -6932,7 +7582,7 @@
     }
 
     function formatStatName(key) {
-      const map = { energy: '체력', mood: '기분', knowledge: '지식', fitness: '운동', charm: '매력', focus: '집중', fame: '명성', luck: '행운', coins: '코인', gems: '보석' };
+      const map = { energy: '체력', mood: '기분', knowledge: '지식', fitness: '운동', charm: '매력', focus: '집중', fame: '명성', luck: '행운', coins: '코인', gems: '보석', growthCrystals: '성장 결정' };
       return map[key] || key;
     }
 
@@ -6967,7 +7617,7 @@
 
     function applyEventRewardBonus() {
       const oneShot = state.nextEventRewardBonus || 0;
-      const bonus = getFriendBonus('eventReward') + getFacilityBonus('eventReward') + getTitleBonus('eventReward') + getActiveBuffBonus('eventReward') + getProductionRate('eventReward') + oneShot;
+      const bonus = getFriendBonus('eventReward') + getFacilityBonus('eventReward') + getTitleBonus('eventReward') + getCollectionBonus('eventReward') + getMentorBonus('eventReward') + getActiveFacilityOperationBonus('eventReward') + getActiveBuffBonus('eventReward') + getProductionRate('eventReward') + oneShot;
       if (bonus <= 0) return;
       gainExp(Math.max(1, Math.round(12 * bonus)));
       addCoins(Math.max(1, Math.round(20 * bonus)));
@@ -6983,6 +7633,8 @@
       });
       factor += getFriendBonus(key);
       factor += getFacilityBonus(key);
+      factor += getMentorBonus(key);
+      factor += getActiveFacilityOperationBonus(key);
       factor += getPermanentEfficiencyBonus();
       factor += getTitleCollectionBonus();
       factor += getTitleBonus('all') + getTitleBonus(key);
@@ -7014,7 +7666,10 @@
     function scaleActionRewardAmount(amount, key, actionId = activeActionContext) {
       if (!actionId || amount <= 0) return amount;
       if (key === 'energy' || key === 'mood') return amount;
-      const scaled = amount * getManualActionScale(actionId, key);
+      let bonus = 0;
+      if (actionId === 'work' && key === 'coins') bonus += getProducerMilestoneBonus('workCoins');
+      if (actionId === 'project' && key !== 'coins') bonus += getProducerMilestoneBonus('projectExp');
+      const scaled = amount * getManualActionScale(actionId, key) * (1 + bonus);
       return Math.max(1, Math.round(scaled));
     }
 
@@ -7048,6 +7703,8 @@
       const actionId = options.actionId || activeActionContext || '';
       const levelBonus = options.levelBonus === false ? 0 : Math.floor(state.level * 0.8);
       let value = mult(base + levelBonus, 'exp') * getActionWeight(actionId);
+      if (state.level < 10) value *= 1 + getAscensionUpgradeBonus('earlyActionExp');
+      if (actionId === 'project') value *= 1 + getProducerMilestoneBonus('projectExp');
       value *= 1 + getActionChargeBonus('exp', actionId);
       value = Math.round(value);
       if (options.allowFloor !== false && actionId) value = Math.max(value, getManualXpFloor(actionId));
@@ -7223,7 +7880,7 @@
         adventure: [{ id: 'act_adventure_random', randomProducer: true, name: '모험 발견 생산자', icon: '🧭', multiplier: 0.20, durationMs: 60000 }]
       };
       if (actionId === 'challenge') {
-        if (options.success) addTimedBuff({ id: 'act_challenge_frenzy', name: '도전 성공 프렌지', icon: '🏆', type: 'globalProducer', multiplier: 2, durationMs: 45000, maxDurationMs: 90000, bonuses: {} });
+        if (options.success) addTimedBuff({ id: 'act_challenge_frenzy', name: '도전 성공 프렌지', icon: '🏆', type: 'globalProducer', multiplier: 0.6, durationMs: 30000, maxDurationMs: 60000, bonuses: {} });
         else gainExp(Math.max(8, Math.round(state.expToNext * 0.01)));
         return;
       }
@@ -7336,7 +7993,7 @@
         getFacilityBonus('challengeChance') * 8 +
         getTitleBonus('challengeChance') * 8;
       const chance = 35 + 55 * (1 - Math.exp(-power / 120));
-      return Math.round(clamp(chance, 30, 82));
+      return Math.round(clamp(chance, 30, 75));
     }
 
     /* ============ ?곸젏 ============ */
@@ -8337,9 +8994,17 @@
         growthCrystalHarvestedAt: state.growthCrystalHarvestedAt || 0,
         producerLevels: { ...(state.producerLevels || {}) },
         facilityLevels: { ...(state.facilityLevels || {}) },
+        facilityMiniGames: { ...(state.facilityMiniGames || {}) },
+        facilityOperationUntil: {},
+        facilityOperationStats: {},
+        statResearch: {},
+        facilityResearch: {},
+        raidFirstClearRewards: { ...(state.raidFirstClearRewards || {}) },
+        collectionMilestonesClaimed: { ...(state.collectionMilestonesClaimed || {}) },
         legendChips: (state.legendChips || 0) + legendGain,
         totalLegendChips: (state.totalLegendChips || 0) + legendGain,
         ascensionUpgrades: { ...(state.ascensionUpgrades || {}) },
+        legacyTree: { ...(state.legacyTree || { purchased: {}, unlocked: true }) },
         bestRunCoins: Math.max(state.bestRunCoins || 0, state.runCoinsEarned || 0),
         runCoinsEarned: 0,
         lifetimeCoinsEarned: state.lifetimeCoinsEarned || 0,
@@ -8349,6 +9014,13 @@
         maxRaidTickets: Math.max(3, state.maxRaidTickets || 3),
         permanentProductionBonus: (state.permanentProductionBonus || 0) + BALANCE.prestigeProductionMultiplier,
         goldenRewardBonus: state.goldenRewardBonus || 0,
+        growthCrystalState: { ...(state.growthCrystalState || {}) },
+        goldenCombo: { ...(state.goldenCombo || { chain: 0, lastType: '', lastAt: 0, bestChain: 0 }) },
+        newsTickerSeen: { ...(state.newsTickerSeen || {}) },
+        newsTickerIndex: state.newsTickerIndex || 0,
+        newsTickerLastAt: state.newsTickerLastAt || 0,
+        bulkBuyMode: state.bulkBuyMode || 1,
+        pinnedGoal: state.pinnedGoal || '',
         seenStory: { ...state.seenStory },
         dailyClaimDate: state.dailyClaimDate,
         dailyStreak: state.dailyStreak,
@@ -8369,6 +9041,10 @@
       ensureGrowthCrystalState();
 
       applySkillStartBonuses();
+      const startCoins = getAscensionUpgradeBonus('startCoins');
+      const startEnergy = getAscensionUpgradeBonus('startEnergy');
+      if (startCoins) addCoins(startCoins);
+      if (startEnergy) changeStat('energy', startEnergy, false);
 
       addLog('♻️ 환생 ' + state.prestige + '회차 시작! 전설 칩 +' + legendGain + ', 생산 효율이 장기 트리와 연결됩니다.', 'event');
       showToast('♻️ 환생 완료! ' + state.prestige + '회차', 'violet');
@@ -8398,17 +9074,21 @@
       const baseGain = Math.max(1, state.clickPower + clickerBonus + getTitleBonus('clickFlat'));
       const critChance = clamp(8 + state.critBonus + getFacilityBonus('critChance') + getTitleBonus('critChance') + state.luck * 0.4, 0, 70);
       const isCrit = Math.random() * 100 < critChance;
-      const comboMult = source === 'manual' ? 1 + Math.min(state.combo, 50) * 0.02 : 1;
+      const comboTierBonus = source === 'manual'
+        ? (state.combo >= 100 ? 0.15 : state.combo >= 50 ? 0.15 : state.combo >= 25 ? 0.10 : state.combo >= 10 ? 0.05 : 0)
+        : (state.combo >= 50 ? 0.045 : state.combo >= 25 ? 0.03 : state.combo >= 10 ? 0.015 : 0);
+      const comboMult = source === 'manual' ? 1 + Math.min(state.combo, 50) * 0.01 + comboTierBonus : 1 + comboTierBonus;
       const canGainClickExp = source === 'manual' ? now - lastClickExpAt >= CLICK_EXP_INTERVAL_MS : false;
       let expGain = canGainClickExp ? Math.max(1, Math.round(baseGain * Math.min(comboMult, 1.4))) : 0;
-      let coinGain = Math.max(1, Math.round(baseGain * comboMult));
+      const cpsBonus = Math.min(Math.max(0, getProductionRate('coins') * (source === 'manual' ? 0.04 : 0.012)), baseGain * 25);
+      let coinGain = Math.max(1, Math.round(baseGain * comboMult + cpsBonus));
 
       if (isCrit) {
         expGain = expGain ? Math.max(expGain + 1, Math.round(expGain * 2)) : 0;
         coinGain *= source === 'manual' ? 5 : 2;
       }
 
-      let clickBonus = getActiveBuffBonus('click') + getUpgradeBonus('clickMultiplier') + getAscensionUpgradeBonus('clickMultiplier');
+      let clickBonus = getActiveBuffBonus('click') + getUpgradeBonus('clickMultiplier') + getAscensionUpgradeBonus('clickMultiplier') + getCollectionBonus('clickMultiplier');
       if (source === 'manual') clickBonus += getBuffBonus('manualClickMultiplier') + getUpgradeBonus('manualClickMultiplier');
       else clickBonus += getBuffBonus('autoClickMultiplier');
 
@@ -9306,7 +9986,14 @@
           friendXp: saved.friendXp || {},
           friendEventCount: saved.friendEventCount || 0,
           builtFacilities: saved.builtFacilities || {},
+          facilityOperationUntil: saved.facilityOperationUntil || {},
+          facilityOperationStats: saved.facilityOperationStats || {},
+          statResearch: saved.statResearch || {},
+          facilityResearch: saved.facilityResearch || {},
+          facilityMiniGames: saved.facilityMiniGames || {},
           raidResults: saved.raidResults || {},
+          raidFirstClearRewards: saved.raidFirstClearRewards || {},
+          raidDailyFirstClearDate: saved.raidDailyFirstClearDate || '',
           raidClearCount: saved.raidClearCount || 0,
           raidFailCount: saved.raidFailCount || 0,
           gemUpgrades: saved.gemUpgrades || {},
@@ -9333,6 +10020,16 @@
           lastOfflineAt: saved.lastOfflineAt || saved.lastSavedAt || Date.now(),
           goldenEvent: saved.goldenEvent || null,
           goldenEventStats: saved.goldenEventStats || {},
+          goldenCombo: saved.goldenCombo || {},
+          producerMilestoneRewards: saved.producerMilestoneRewards || {},
+          collectionMilestonesClaimed: saved.collectionMilestonesClaimed || {},
+          growthCrystalState: saved.growthCrystalState || {},
+          legacyTree: saved.legacyTree || { purchased: {}, unlocked: true },
+          newsTickerSeen: saved.newsTickerSeen || {},
+          newsTickerIndex: saved.newsTickerIndex || 0,
+          newsTickerLastAt: saved.newsTickerLastAt || 0,
+          bulkBuyMode: saved.bulkBuyMode || 1,
+          pinnedGoal: saved.pinnedGoal || '',
           raidTickets: Number.isFinite(saved.raidTickets) ? saved.raidTickets : 3,
           raidTicketFragments: Number.isFinite(saved.raidTicketFragments) ? saved.raidTicketFragments : 0,
           lastRaidTicketRegenAt: Number.isFinite(saved.lastRaidTicketRegenAt) ? saved.lastRaidTicketRegenAt : Date.now(),
@@ -9907,14 +10604,19 @@
       const clickBase = Math.round(((state.clickPower || 1) + clickerBonus + getTitleBonus('clickFlat')) * 10) / 10;
       const critChance = clamp(8 + state.critBonus + getFacilityBonus('critChance') + getTitleBonus('critChance') + state.luck * 0.4, 0, 70);
       const prestigeReward = getPrestigeReward();
+      const recommendations = getRecommendedGoals().map((goal) => goal.title).join(' / ') || '생산자 구매와 강화 조건을 기다리는 중';
       const rows = [
+        ['문키력/s', '+' + formatRate(getMunkiPowerRate())],
         ['코인/s', '+' + formatRate(coinsPerSecond)],
         ['XP/s', '+' + formatRate(xpPerSecond)],
         ['명성/s', '+' + formatRate(rates.fame)],
         ['자동 클릭/s', '+' + formatRate(getAutoClickRate()) + ' · 효율 ' + Math.round(getAutoClickEfficiency() * 100) + '%'],
         ['전체 생산 배율', 'x' + (Math.round(getGlobalProductionMultiplier() * getActiveBuffMultiplier('globalProducer') * 100) / 100)],
         ['팬심', getAchievementCount() + '/' + getTotalAchievementCount() + ' 업적 · ' + getFanStageName() + ' · x' + (Math.round(getFanMultiplier() * 1000) / 1000)],
+        ['수집 보너스', getCollectionBonusSummary()],
         ['시즌', getSeasonStatusText()],
+        ['뉴스', getNewsTickerText()],
+        ['추천 목표', recommendations],
         ['전설 칩 예상', '+' + getLegendChipsToGain() + ' · 보유 ' + (state.legendChips || 0)],
         ['성장 결정', (state.growthCrystals || 0) + '개 · 다음 ' + getGrowthCrystalTimeLeft()],
         ['XP/분', '+' + formatRate(xpPerSecond * 60)],
@@ -9925,7 +10627,6 @@
         ['황금 이벤트', getGoldenEventStatus()],
         ['오프라인 한도', Math.round(BALANCE.offlineRewardMaxMs / 3600000) + '시간 · ' + Math.round(BALANCE.offlineRewardRate * 100) + '%'],
         ['레이드 티켓', formatPlainNumber(state.raidTickets || 0) + '/' + formatPlainNumber(getMaxRaidTickets()) + ' · 조각 ' + formatPlainNumber(state.raidTicketFragments || 0) + '/3'],
-        ['행동 예약 슬롯', Math.max(0, state.automationSlots || 0) + '/3'],
         ['운영 자동화', getAutomationSlotUsed() + '개 활성'],
         ['자동 회복', state.autoRecoveryEnabled ? '켜짐' : '꺼짐'],
         ['버프 스케줄러', state.buffSchedulerEnabled ? '켜짐' : '꺼짐'],
@@ -9945,6 +10646,7 @@
         ['효율 강화', '+' + Math.round(getPermanentEfficiencyBonus() * 100) + '%'],
         ['칭호 수집 보너스', '+' + (Math.round(getTitleCollectionBonus() * 1000) / 10) + '%'],
         ['칭호 개별 효과', getTitleBonusSummary()],
+        ['황금 콤보', 'x' + (state.goldenCombo && state.goldenCombo.chain || 0) + ' · 보너스 +' + Math.round(getGoldenComboBonus() * 100) + '% · 최고 ' + ((state.goldenCombo && state.goldenCombo.bestChain) || 0)],
         ['예상 환생 보상', 'SP +' + prestigeReward.sp + ' / 💎 +' + prestigeReward.gems],
         ['도전 성공률', getChallengeChance() + '%'],
         ['휴식 쿨타임', Math.round(getRestCooldownMs() / 1000) + '초'],
@@ -10348,7 +11050,8 @@
     function buildProducerOutputChips(producer) {
       const owned = Math.max(1, getProducerOwned(producer.id));
       return Object.entries(producer.outputs).map(([key, value]) => {
-        const perSecond = value * owned * getProducerOutputMultiplier(producer, key);
+        const effectiveValue = key === 'exp' ? value * getProducerExpDampeningByLevel() : value;
+        const perSecond = effectiveValue * owned * getProducerOutputMultiplier(producer, key);
         const shown = (key === 'friendChance' || key === 'eventReward' || key === 'globalProduction' || key === 'crystalChance')
           ? '+' + (Math.round(perSecond * 1000) / 10) + '%/s'
           : key === 'raidTickets' || key === 'autoClicks'
@@ -10365,9 +11068,16 @@
       const mult = Math.round(getGlobalProductionMultiplier() * getActiveBuffMultiplier('globalProducer') * 100) / 100;
       const chips = [];
       const push = (cls, label, value) => { chips.push('<span class="producer-rate-chip ' + cls + '">' + label + ' +' + value + '/s</span>'); };
+      const munkiPower = getMunkiPowerRate();
+      const milestoneDone = PRODUCERS.reduce((sum, producer) => {
+        const rewards = (state.producerMilestoneRewards && state.producerMilestoneRewards[producer.id]) || {};
+        return sum + Object.keys(rewards).length;
+      }, 0);
+      const milestoneTotal = PRODUCERS.length * PRODUCER_UPGRADE_THRESHOLDS.length;
       push('coin', '🪙 코인', formatRate(rates.coins || 0));
       push('exp', '✨ XP', formatRate(rates.exp || 0));
       push('fame', '📣 명성', formatRate(rates.fame || 0));
+      chips.unshift('<span class="producer-rate-chip special">🔥 문키력 ' + formatRate(munkiPower) + '/s</span>');
       if (rates.knowledge) push('stat', '📚 지식', formatRate(rates.knowledge));
       if (rates.fitness) push('stat', '💪 운동', formatRate(rates.fitness));
       if (rates.charm) push('stat', '💖 매력', formatRate(rates.charm));
@@ -10384,9 +11094,19 @@
       return '<div class="producer-summary-card">' +
         '<div class="producer-summary-head">' +
         '<span class="producer-summary-title"><span class="icon-circle">🏭</span>자동 생산 현황</span>' +
-        '<span class="producer-summary-mult">전체 생산 x' + mult.toFixed(2) + ' · 보유 ' + totalOwned + '대</span>' +
+        '<span class="producer-summary-mult">전체 생산 x' + mult.toFixed(2) + ' · 보유 ' + totalOwned + '대 · 마일스톤 ' + milestoneDone + '/' + milestoneTotal + '</span>' +
         '</div>' +
         '<div class="producer-rate-chips">' + chips.join('') + '</div>' +
+        '<div class="producer-desc">📰 ' + escapeHtml(getNewsTickerText()) + '</div>' +
+        (getProducerExpDampeningByLevel() < 1 ? '<div class="producer-desc">⚖️ Lv.25+ 자동 XP 감쇠 적용 중: 현재 ' + Math.round(getProducerExpDampeningByLevel() * 100) + '%</div>' : '') +
+        '<div class="producer-buy-row" role="group" aria-label="생산자 구매 모드">' +
+          [1, 10, 25, 100, 'max'].map((mode) => {
+            const active = state.bulkBuyMode === mode;
+            const label = mode === 'max' ? '최대' : String(mode);
+            return '<button class="small-btn ' + (active ? 'gold' : '') + '" type="button" data-bulk-mode="' + mode + '">' + label + '</button>';
+          }).join('') +
+        '</div>' +
+        '<details class="producer-desc"><summary>현재 추천 목표</summary>' + renderRecommendedGoals() + '</details>' +
         '<div class="producer-desc">생산자를 사면 매초 자동으로 자원이 쌓입니다. 행동·버프·시설이 출력을 강화합니다.</div>' +
         crystalHtml +
         '</div>';
@@ -10410,7 +11130,9 @@
       if (nextThreshold) {
         const prev = thresholds[thresholds.indexOf(nextThreshold) - 1] || 0;
         barWidth = Math.round(((owned - prev) / Math.max(1, nextThreshold - prev)) * 100);
-        progressLabel = '<strong>' + owned + '</strong>대 · 다음 마일스톤 ' + nextThreshold + '대 (출력 x2)';
+        const nextIndex = thresholds.indexOf(nextThreshold);
+        const nextMult = PRODUCER_UPGRADE_MULTIPLIER_STEPS[nextIndex] || 10;
+        progressLabel = '<strong>' + owned + '</strong>대 · 다음 마일스톤 ' + nextThreshold + '대 (누적 출력 x' + nextMult + ' · ' + escapeHtml(getProducerMilestoneRewardLabel(producer.id, nextThreshold)) + ')';
       } else {
         barWidth = 100;
         progressLabel = '<strong>' + owned + '</strong>대 · 모든 마일스톤 도달';
@@ -10419,10 +11141,12 @@
       if (upgradeThreshold) {
         const cost = getProducerUpgradeCost(producer, upgradeThreshold);
         const disabled = state.coins < cost ? ' disabled' : '';
-        const bonusMap = { 50: ' · 전체 생산 +5%', 200: ' · 전체 생산 +10%', 500: ' · 전체 생산 +15%', 1000: ' · 전체 생산 +25%' };
-        const bonus = bonusMap[upgradeThreshold] || '';
+        const upgradeIndex = thresholds.indexOf(upgradeThreshold);
+        const nextMult = PRODUCER_UPGRADE_MULTIPLIER_STEPS[upgradeIndex] || 10;
+        const bonusMap = { 50: ' · 전체 생산 +1%', 200: ' · 전체 생산 +2%', 500: ' · 전체 생산 +3%', 1000: ' · 전체 생산 +5%' };
+        const bonus = (bonusMap[upgradeThreshold] || '') + ' · ' + getProducerMilestoneRewardLabel(producer.id, upgradeThreshold);
         upgradeAction = '<div class="producer-milestone-action">' +
-          '<span class="producer-desc">⚡ ' + upgradeThreshold + '대 업그레이드 적용 가능 · 출력 x2' + bonus + '</span>' +
+          '<span class="producer-desc">⚡ ' + upgradeThreshold + '대 업그레이드 적용 가능 · 누적 출력 x' + nextMult + bonus + '</span>' +
           '<button class="small-btn gold" type="button" data-producer-upgrade="' + producer.id + '" data-threshold="' + upgradeThreshold + '"' + disabled + '>🪙 ' + formatBigAmount(cost) + ' 적용</button>' +
           '</div>';
       }
@@ -10462,9 +11186,17 @@
         const owned = getProducerOwned(producer.id);
         const priceOne = getProducerBulkCost(producer, 1);
         const priceTen = getProducerBulkCost(producer, 10);
+        const priceTwentyFive = getProducerBulkCost(producer, 25);
+        const priceHundred = getProducerBulkCost(producer, 100);
+        const selectedMode = state.bulkBuyMode === 'max' ? 'max' : Number(state.bulkBuyMode || 1);
+        const selectedCount = selectedMode === 'max' ? getMaxAffordableProducerCount(producer) : selectedMode;
+        const priceSelected = selectedMode === 'max' ? 0 : getProducerBulkCost(producer, selectedCount);
         const maxCount = getMaxAffordableProducerCount(producer);
         const canBuyOne = state.coins >= priceOne;
         const canBuyTen = state.coins >= priceTen;
+        const canBuyTwentyFive = state.coins >= priceTwentyFive;
+        const canBuyHundred = state.coins >= priceHundred;
+        const canBuySelected = selectedMode === 'max' ? maxCount > 0 : state.coins >= priceSelected;
         const cardCls = 'producer-card cat-' + producer.category + (canBuyOne ? ' affordable' : '');
         const categoryLabel = getProducerCategoryLabel(producer.category);
         const head = '<div class="producer-head">' +
@@ -10478,10 +11210,16 @@
         const outputChips = '<div class="producer-output-chips">' + buildProducerOutputChips(producer) + '</div>';
         const milestone = buildProducerMilestoneHtml(producer);
         const buyRow = '<div class="producer-buy-row">' +
+          '<button class="producer-buy-btn primary" type="button" data-producer="' + producer.id + '" data-mode="selected"' + (canBuySelected ? '' : ' disabled') + '>' +
+          '<span class="producer-buy-label">선택 +' + (selectedMode === 'max' ? maxCount : selectedCount) + '</span><span class="producer-buy-cost">' + (selectedMode === 'max' ? '최대 구매' : '🪙 ' + formatBigAmount(priceSelected)) + '</span></button>' +
           '<button class="producer-buy-btn primary" type="button" data-producer="' + producer.id + '" data-mode="one"' + (canBuyOne ? '' : ' disabled') + '>' +
           '<span class="producer-buy-label">+1</span><span class="producer-buy-cost">🪙 ' + formatBigAmount(priceOne) + '</span></button>' +
           '<button class="producer-buy-btn" type="button" data-producer="' + producer.id + '" data-mode="ten"' + (canBuyTen ? '' : ' disabled') + '>' +
           '<span class="producer-buy-label">+10</span><span class="producer-buy-cost">🪙 ' + formatBigAmount(priceTen) + '</span></button>' +
+          '<button class="producer-buy-btn" type="button" data-producer="' + producer.id + '" data-mode="twentyfive"' + (canBuyTwentyFive ? '' : ' disabled') + '>' +
+          '<span class="producer-buy-label">+25</span><span class="producer-buy-cost">🪙 ' + formatBigAmount(priceTwentyFive) + '</span></button>' +
+          '<button class="producer-buy-btn" type="button" data-producer="' + producer.id + '" data-mode="hundred"' + (canBuyHundred ? '' : ' disabled') + '>' +
+          '<span class="producer-buy-label">+100</span><span class="producer-buy-cost">🪙 ' + formatBigAmount(priceHundred) + '</span></button>' +
           '<button class="producer-buy-btn" type="button" data-producer="' + producer.id + '" data-mode="max"' + (maxCount <= 0 ? ' disabled' : '') + '>' +
           '<span class="producer-buy-label">가능한 만큼</span><span class="producer-buy-cost">+' + maxCount + '</span></button>' +
           '</div>';
@@ -10579,6 +11317,68 @@
       }).join('');
     }
 
+    function buildFacilityMiniGamesHtml() {
+      ensureLongLoopState();
+      const now = Date.now();
+      const routineUnlocked = isRoutineGardenUnlocked();
+      const memeUnlocked = isMemeExchangeUnlocked();
+      const mentorUnlocked = isMentorSlotsUnlocked();
+      const focusUnlocked = isFocusBookUnlocked();
+      const routineState = state.facilityMiniGames.routineGarden || { slots: [null, null, null] };
+      const routineSlots = (routineState.slots || [null, null, null]).map((slot, index) => {
+        if (slot) {
+          const seed = ROUTINE_SEEDS[slot.seedId] || ROUTINE_SEEDS.study;
+          const ready = now >= Number(slot.readyAt || 0);
+          return '<div class="row-card">' +
+            '<div><div class="meta">' + seed.icon + ' ' + escapeHtml(seed.name) + '</div>' +
+            '<div class="desc">' + (ready ? '수확 가능' : '남은 시간 ' + formatShortTime((slot.readyAt || 0) - now)) + '</div></div>' +
+            '<button class="small-btn gold" type="button" data-routine-harvest="' + index + '"' + (ready ? '' : ' disabled') + '>수확</button>' +
+            '</div>';
+        }
+        const seedButtons = Object.entries(ROUTINE_SEEDS).map(([seedId, seed]) => {
+          return '<button class="small-btn" type="button" data-routine-plant="' + index + '" data-seed="' + seedId + '">' + seed.icon + ' ' + escapeHtml(seed.name) + '</button>';
+        }).join('');
+        return '<div class="row-card"><div><div class="meta">빈 루틴 슬롯 ' + (index + 1) + '</div><div class="desc">루틴을 심으면 시간이 지난 뒤 스탯과 버프를 수확합니다.</div></div><div class="facility-actions">' + seedButtons + '</div></div>';
+      }).join('');
+
+      const meme = state.facilityMiniGames.memeExchange || {};
+      updateMemeExchangePrice();
+      const memeHtml = '<div class="row-card">' +
+        '<div><div class="meta">📈 밈 거래소</div>' +
+        '<div class="desc">현재 밈 토큰 ' + (meme.tokens || 0) + '개 · 시세 🪙 ' + formatBigAmount(meme.price || 100) + ' · 다음 변동 ' + formatShortTime((meme.nextAt || now) - now) + '</div></div>' +
+        '<div class="facility-actions">' +
+        '<button class="small-btn gold" type="button" data-meme-buy' + (memeUnlocked && state.coins >= (meme.price || 100) ? '' : ' disabled') + '>1개 구매</button>' +
+        '<button class="small-btn violet" type="button" data-meme-sell' + (memeUnlocked && (meme.tokens || 0) > 0 ? '' : ' disabled') + '>1개 판매</button>' +
+        '</div></div>';
+
+      const equipped = (state.facilityMiniGames.mentorSlots && state.facilityMiniGames.mentorSlots.equipped) || [];
+      const mentorLimit = getMentorSlotCount();
+      const mentorHtml = '<div class="row-card" style="grid-template-columns:1fr;">' +
+        '<div><div class="meta">🧑‍🏫 멘토 슬롯 ' + equipped.length + '/' + mentorLimit + '</div><div class="desc">멘토를 배치해 플레이 스타일별 패시브를 고릅니다.</div></div>' +
+        '<div class="facility-actions">' + MENTOR_OPTIONS.map((mentor) => {
+          const active = equipped.includes(mentor.id);
+          return '<button class="small-btn ' + (active ? 'gold' : '') + '" type="button" data-mentor-toggle="' + mentor.id + '"' + (mentorUnlocked ? '' : ' disabled') + '>' + mentor.icon + ' ' + escapeHtml(mentor.name) + (active ? ' 장착중' : '') + '</button>';
+        }).join('') + '</div></div>';
+
+      const focusHtml = '<div class="row-card" style="grid-template-columns:1fr;">' +
+        '<div><div class="meta">📖 집중 스킬북</div><div class="desc">집중과 지식을 소모해 짧은 액티브 버프를 사용합니다.</div></div>' +
+        '<div class="facility-actions">' + Object.entries(FOCUS_BOOK_SPELLS).map(([spellId, spell]) => {
+          const lastAt = (state.facilityMiniGames.focusBook && state.facilityMiniGames.focusBook[spellId]) || 0;
+          const remaining = Math.max(0, Math.ceil((spell.cooldownMs - (now - lastAt)) / 1000));
+          const disabled = !focusUnlocked || remaining > 0 || !canPayCost(spell.cost);
+          return '<button class="small-btn violet" type="button" data-focus-spell="' + spellId + '"' + (disabled ? ' disabled' : '') + '>' + spell.icon + ' ' + escapeHtml(spell.name) + (remaining > 0 ? ' ' + remaining + '초' : '') + '</button>';
+        }).join('') + '</div></div>';
+
+      return '<details class="facility-summary" open>' +
+        '<summary class="facility-summary-title">🎮 시설 미니게임</summary>' +
+        '<div class="facility-note">시설 레벨을 올리면 루틴 정원, 밈 거래소, 멘토 슬롯, 집중 스킬북이 열립니다.</div>' +
+        '<div class="facility-section-header">' + (routineUnlocked ? '🌱 루틴 정원' : '🔒 루틴 정원 · 공부방/휴식 캡슐 Lv.2 필요') + '</div>' + (routineUnlocked ? routineSlots : '') +
+        '<div class="facility-section-header">' + (memeUnlocked ? '📈 밈 거래소' : '🔒 밈 거래소 · 방송 세팅/흑역사 녹화실 Lv.2 필요') + '</div>' + (memeUnlocked ? memeHtml : '') +
+        '<div class="facility-section-header">' + (mentorUnlocked ? '🧑‍🏫 멘토 슬롯' : '🔒 멘토 슬롯 · 전설 연구소 계열 또는 환생 1회 필요') + '</div>' + (mentorUnlocked ? mentorHtml : '') +
+        '<div class="facility-section-header">' + (focusUnlocked ? '📖 집중 스킬북' : '🔒 집중 스킬북 · 집중의 방/공부방 Lv.2 필요') + '</div>' + (focusUnlocked ? focusHtml : '') +
+        '</details>';
+    }
+
     function renderFacilities() {
       ensureFacilityState();
       const buildableList = [];
@@ -10593,17 +11393,22 @@
       const builtCount = builtList.length;
       const buildableCount = buildableList.length;
       const lockedCount = lockedList.length;
+      const totalFacilityLevel = facilities.reduce((sum, facility) => sum + getFacilityDisplayLevel(facility.id), 0);
+      const operatingCount = Object.values(state.facilityOperationUntil || {}).filter((until) => Number(until || 0) > Date.now()).length;
       const progressPct = Math.round((builtCount / Math.max(1, totalCount)) * 100);
       const summaryHtml = '<div class="facility-summary">' +
         '<div class="facility-summary-head">' +
         '<span class="facility-summary-title"><span class="facility-icon">🏠</span>시설 건설 현황</span>' +
         '<div class="facility-summary-stats">' +
         '<span class="pill gold">완료 ' + builtCount + '/' + totalCount + '</span>' +
+        '<span class="pill violet">💠 성장 결정 ' + (state.growthCrystals || 0) + '개</span>' +
+        '<span class="pill">총 시설 Lv.' + totalFacilityLevel + '</span>' +
+        '<span class="pill">운영 중 ' + operatingCount + '</span>' +
         '<span class="pill">건설 가능 ' + buildableCount + '</span>' +
         '<span class="pill">재료 부족 ' + lockedCount + '</span>' +
         '</div></div>' +
         '<div class="facility-summary-bar"><span style="width:' + progressPct + '%"></span></div>' +
-        '<div class="facility-note">이번 회차에만 유지되는 시설입니다. 환생하면 초기화됩니다.</div>' +
+        '<div class="facility-note">시설은 이번 회차의 인프라입니다. 성장 결정과 스탯으로 강화하고, 운영 버튼으로 30분짜리 버프를 켤 수 있습니다.</div>' +
         '</div>';
 
       const renderCard = (facility, kind) => {
@@ -10612,21 +11417,29 @@
         const btnLabel = kind === 'built' ? '완료' : '건설';
         const btnDisabled = kind === 'buildable' ? '' : ' disabled';
         const btnClass = kind === 'buildable' ? 'gold' : '';
-        const facilityLevel = (state.facilityLevels && state.facilityLevels[facility.id]) || 0;
-        const facilityLevelCost = getCrystalLevelCost(facilityLevel);
-        const canLevelFacility = kind === 'built' && state.growthCrystalUnlocked && state.growthCrystals >= facilityLevelCost;
+        const facilityLevel = getFacilityDisplayLevel(facility.id);
+        const upgradeCost = kind === 'built' ? getFacilityUpgradeCostDetailed(facility.id) : {};
+        const canLevelFacility = kind === 'built' && facilityLevel > 0 && facilityLevel < 5 && canPayCost(upgradeCost);
+        const operationConfig = FACILITY_OPERATION_CONFIG[facility.id];
+        const operationCost = operationConfig ? Object.fromEntries(Object.entries(operationConfig.cost).map(([key, value]) => [key, Math.ceil(value * (1 + (facilityLevel - 1) * 0.35))])) : {};
+        const operationUntil = Number((state.facilityOperationUntil || {})[facility.id] || 0);
+        const operationLeft = Math.max(0, operationUntil - Date.now());
+        const canOperate = kind === 'built' && operationConfig && canPayCost(operationCost);
         return '<div class="' + cls + '">' +
           '<div class="facility-head">' +
           '<div><div class="facility-name"><span class="facility-icon">' + facility.icon + '</span>' + escapeHtml(facility.name) + '</div></div>' +
-          '<span class="pill ' + (kind === 'built' ? 'gold' : '') + '">' + status + (kind === 'built' ? ' · Lv.' + facilityLevel : '') + '</span></div>' +
+          '<span class="pill ' + (kind === 'built' ? 'gold' : '') + '">' + status + (kind === 'built' ? ' · Lv.' + facilityLevel + '/5' : '') + '</span></div>' +
           '<div class="facility-effect"><strong>효과</strong> · ' + escapeHtml(facility.desc) + '</div>' +
           (kind === 'built'
-            ? '<div class="facility-effect"><strong>성장 결정</strong> · 시설 효과 +' + (Math.round(getFacilityLevelBonus(facility.id) * 1000) / 10) + '%</div>'
+            ? '<div class="facility-effect"><strong>레벨 효과</strong> · 시설 고유 효과 x' + (facilityLevel === 1 ? '1.0' : facilityLevel === 2 ? '1.3' : facilityLevel === 3 ? '1.7' : facilityLevel === 4 ? '2.2' : '3.0') + ' · 성장 결정 보정 +' + (Math.round(getFacilityLevelBonus(facility.id) * 1000) / 10) + '%</div>' +
+              '<div class="facility-cost-row"><strong>강화 비용</strong><div class="facility-cost-chips">' + (facilityLevel >= 5 ? '<span class="facility-cost-chip met">최대 레벨</span>' : buildFacilityCostChips(upgradeCost)) + '</div></div>' +
+              (operationConfig ? '<div class="facility-cost-row"><strong>운영</strong><div class="facility-cost-chips">' + buildFacilityCostChips(operationCost) + '</div><div class="facility-effect">' + escapeHtml(operationConfig.label) + (operationLeft > 0 ? ' · 남은 시간 ' + formatShortTime(operationLeft) : ' · 30분 운영') + '</div></div>' : '')
             : '<div class="facility-cost-row"><strong>건설 비용</strong>' +
               '<div class="facility-cost-chips">' + buildFacilityCostChips(facility.cost) + '</div></div>') +
           '<div class="facility-actions">' +
           '<button class="small-btn ' + btnClass + '" type="button" data-facility="' + facility.id + '"' + btnDisabled + '>' + btnLabel + '</button>' +
-          (kind === 'built' ? '<button class="small-btn violet" type="button" data-facility-level="' + facility.id + '"' + (canLevelFacility ? '' : ' disabled') + '>💠 ' + facilityLevelCost + '개</button>' : '') +
+          (kind === 'built' ? '<button class="small-btn violet" type="button" data-facility-level="' + facility.id + '"' + (canLevelFacility ? '' : ' disabled') + '>' + (facilityLevel >= 5 ? '최대 강화' : 'Lv.' + (facilityLevel + 1) + ' 강화') + '</button>' : '') +
+          (kind === 'built' && operationConfig ? '<button class="small-btn gold" type="button" data-facility-operate="' + facility.id + '"' + (canOperate ? '' : ' disabled') + '>운영 시작</button>' : '') +
           '</div>' +
           '</div>';
       };
@@ -10643,7 +11456,7 @@
       const fallback = !buildableList.length && !lockedList.length && !builtList.length
         ? '<div class="facility-empty">표시할 시설이 없다.</div>'
         : '';
-      els.facilityList.innerHTML = summaryHtml + body + fallback;
+      els.facilityList.innerHTML = summaryHtml + buildFacilityMiniGamesHtml() + body + fallback;
     }
 
     function formatRaidReward(reward) {
@@ -10741,6 +11554,12 @@
         const buttonLabel = !hasTicket ? '티켓 필요' : canEnter ? '⚔️ 도전' : '조건 부족';
         const gaugeStyle = '--gauge-pct:' + chance + ';';
         const boostText = raidBoost > 0 ? ' · 🧭 보조 ' + raidBoost + '회 대기' : '';
+        const firstClearDone = !!(state.raidFirstClearRewards && state.raidFirstClearRewards[raid.id]);
+        const firstBonus = raid.tier === '상급'
+          ? '최초 클리어: 영구 생산 +0.3%, 황금 보상 +0.2%'
+          : raid.tier === '중급'
+            ? '최초 클리어: 영구 생산 +0.2%'
+            : '최초 클리어: 영구 생산 +0.1%';
         return '<details class="' + cls + '">' +
           '<summary>' +
           '<span class="raid-tier-summary-left">' +
@@ -10754,9 +11573,11 @@
           '<div class="raid-tier-detail">' +
           '<div class="raid-tier-grid">' +
           '<div class="raid-tier-block cost"><strong>입장 조건</strong><span class="raid-tier-block-text">' + escapeHtml(formatCost(raid.req)) + '</span></div>' +
-          '<div class="raid-tier-block"><strong>소모 (실패 시 60% 환급)</strong><span class="raid-tier-block-text">' + escapeHtml(formatCost(getScaledRaidCost(raid))) + '</span></div>' +
+          '<div class="raid-tier-block"><strong>소모 (실패 시 30% 환급)</strong><span class="raid-tier-block-text">' + escapeHtml(formatCost(getScaledRaidCost(raid))) + '</span></div>' +
           '<div class="raid-tier-block success"><strong>성공 보상</strong><span class="raid-tier-block-text">' + escapeHtml(formatRaidReward(raid.success)) + '</span></div>' +
           '<div class="raid-tier-block fail"><strong>실패 보상</strong><span class="raid-tier-block-text">' + escapeHtml(formatRaidReward(raid.fail)) + '</span></div>' +
+          '<div class="raid-tier-block success"><strong>' + (firstClearDone ? '최초 보상 수령 완료' : '최초 클리어 보상') + '</strong><span class="raid-tier-block-text">' + escapeHtml(firstBonus) + '</span></div>' +
+          '<div class="raid-tier-block"><strong>반복 보상</strong><span class="raid-tier-block-text">60초간 전체 생산 +10% 임시 버프</span></div>' +
           '</div>' +
           '<div class="raid-tier-actions">' +
           '<span class="raid-tier-missing">🎯 성공률 ' + chance + '% · ' + escapeHtml(missingText) + boostText + '</span>' +
@@ -10857,6 +11678,10 @@
       const filter = state.clipFilter;
       const ownedCount = count;
       const lockedCount = total - count;
+      const bonusCard = '<div class="row-card" style="grid-template-columns:1fr;">' +
+        '<div><div class="meta"><span class="icon-circle">📼</span>도감 수집 보너스</div>' +
+        '<div class="desc">' + escapeHtml(getCollectionBonusSummary()) + ' · 25% 수집부터 성장 결정 시간이 줄고, 50%부터 황금 보상이 강해집니다.</div></div>' +
+        '</div>';
       const filterChips = CLIP_FILTERS.map((f) => {
         const fcount = f.id === 'all' ? total : f.id === 'owned' ? ownedCount : lockedCount;
         return '<button class="chip ' + (filter === f.id ? 'active' : '') + '" type="button" data-clip-filter="' + f.id + '" aria-pressed="' + (filter === f.id) + '">' + escapeHtml(f.label) + ' (' + fcount + ')</button>';
@@ -10887,7 +11712,7 @@
           '</div>';
       };
 
-      let body = '';
+      let body = bonusCard;
       if (filter === 'all' || filter === 'owned') {
         if (ownedClips.length) {
           body += '<div class="clip-section-header">🎬 수집한 클립 · ' + ownedClips.length + '</div>';
@@ -10923,7 +11748,8 @@
       const filter = state.titleFilter;
 
       const summary = '<div class="title-summary">' +
-        '<div class="title-summary-head"><span><strong>' + ownedCount + '</strong> / ' + total + ' (' + pct + '%)</span><span>전체 행동 효율 +' + collectionBonus + '%</span></div>' +
+        '<div class="title-summary-head"><span><strong>' + ownedCount + '</strong> / ' + total + ' (' + pct + '%)</span><span>전체 행동 효율 +' + collectionBonus + '% · 칭호 클릭 +' + (Math.round(getCollectionBonus('clickMultiplier') * 1000) / 10) + '%</span></div>' +
+        '<div class="desc">' + escapeHtml(getCollectionBonusSummary()) + '</div>' +
         '<div class="title-summary-bar"><span style="width:' + pct + '%"></span></div>' +
         '</div>';
 
@@ -11306,6 +12132,14 @@
           harvestGrowthCrystal();
           return;
         }
+        const bulkBtn = event.target.closest('button[data-bulk-mode]');
+        if (bulkBtn) {
+          const raw = bulkBtn.dataset.bulkMode;
+          state.bulkBuyMode = raw === 'max' ? 'max' : Number(raw || 1);
+          renderProducers();
+          saveGame();
+          return;
+        }
         const buyBtn = event.target.closest('button[data-producer]');
         if (buyBtn && !buyBtn.disabled) {
           buyProducer(buyBtn.dataset.producer, buyBtn.dataset.mode || 'one');
@@ -11343,7 +12177,42 @@
       els.facilityList.addEventListener('click', (event) => {
         const levelBtn = event.target.closest('button[data-facility-level]');
         if (levelBtn && !levelBtn.disabled) {
-          levelUpFacilityWithCrystal(levelBtn.dataset.facilityLevel);
+          levelUpFacilityDeep(levelBtn.dataset.facilityLevel);
+          return;
+        }
+        const operateBtn = event.target.closest('button[data-facility-operate]');
+        if (operateBtn && !operateBtn.disabled) {
+          startFacilityOperation(operateBtn.dataset.facilityOperate);
+          return;
+        }
+        const routinePlantBtn = event.target.closest('button[data-routine-plant]');
+        if (routinePlantBtn && !routinePlantBtn.disabled) {
+          plantRoutineSeed(Number(routinePlantBtn.dataset.routinePlant || 0), routinePlantBtn.dataset.seed);
+          return;
+        }
+        const routineHarvestBtn = event.target.closest('button[data-routine-harvest]');
+        if (routineHarvestBtn && !routineHarvestBtn.disabled) {
+          harvestRoutineSeed(Number(routineHarvestBtn.dataset.routineHarvest || 0));
+          return;
+        }
+        const memeBuyBtn = event.target.closest('button[data-meme-buy]');
+        if (memeBuyBtn && !memeBuyBtn.disabled) {
+          buyMemeToken();
+          return;
+        }
+        const memeSellBtn = event.target.closest('button[data-meme-sell]');
+        if (memeSellBtn && !memeSellBtn.disabled) {
+          sellMemeToken();
+          return;
+        }
+        const mentorBtn = event.target.closest('button[data-mentor-toggle]');
+        if (mentorBtn && !mentorBtn.disabled) {
+          toggleMentorSlot(mentorBtn.dataset.mentorToggle);
+          return;
+        }
+        const focusSpellBtn = event.target.closest('button[data-focus-spell]');
+        if (focusSpellBtn && !focusSpellBtn.disabled) {
+          castFocusBookSpell(focusSpellBtn.dataset.focusSpell);
           return;
         }
         const btn = event.target.closest('button[data-facility]');
