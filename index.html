@@ -717,6 +717,12 @@
       color: #1a0c33;
       box-shadow: var(--glow-violet);
     }
+    .btn.toggle-on {
+      background: linear-gradient(135deg, var(--gold), #ffd87a);
+      color: #2a1c00;
+      border-color: rgba(244, 194, 68, 0.5);
+      box-shadow: var(--glow-gold);
+    }
     .btn.icon { padding: 8px 10px; }
     .btn:disabled,
     .btn[aria-disabled="true"] { opacity: 0.42; cursor: not-allowed; transform: none; filter: grayscale(0.5); box-shadow: none; }
@@ -1875,6 +1881,7 @@
       <div class="savebox">
         <div class="save-status" id="saveStatus" role="status" aria-live="polite">저장 상태 확인 중</div>
         <button class="btn icon secondary" type="button" id="themeBtn" title="테마 전환" aria-label="라이트/다크 테마 전환">☀️</button>
+        <button class="btn icon secondary" type="button" id="eventLockBtn" title="이벤트 팝업 바깥 클릭 닫기 방지" aria-label="이벤트 팝업 바깥 클릭 닫기 방지 끄기" aria-pressed="false">📌</button>
         <button class="btn secondary" type="button" id="saveBtn" aria-label="현재 진행 상황 저장 (Ctrl+S)">저장</button>
         <button class="btn danger" type="button" id="resetBtn" aria-label="모든 진행 상황 초기화">초기화</button>
       </div>
@@ -3803,6 +3810,7 @@
         leaderboardLastSyncAt: 0,
         leaderboardRows: [],
         leaderboardStatus: '랭킹을 불러올 준비가 됐습니다.',
+        preventEventModalBackdropClose: false,
         theme: 'dark'
       };
     }
@@ -6170,6 +6178,7 @@
           leaderboardLastSyncAt: saved.leaderboardLastSyncAt || 0,
           leaderboardRows: Array.isArray(saved.leaderboardRows) ? saved.leaderboardRows : [],
           leaderboardStatus: saved.leaderboardStatus || '랭킹을 불러올 준비가 됐습니다.',
+          preventEventModalBackdropClose: !!saved.preventEventModalBackdropClose,
           seenStory: saved.seenStory || {},
           logs: Array.isArray(saved.logs) ? saved.logs.slice(0, MAX_LOGS) : []
         };
@@ -7352,6 +7361,7 @@
       els.goPrestigeBtn.addEventListener('click', () => { els.endingModal.classList.remove('open'); openPrestigeModal(); });
       els.dailyBtn.addEventListener('click', claimDaily);
       els.themeBtn.addEventListener('click', toggleTheme);
+      els.eventLockBtn.addEventListener('click', toggleEventModalLock);
       els.prestigeBtn.addEventListener('click', openPrestigeModal);
       els.prestigeInfoBtn.addEventListener('click', openPrestigeModal);
       els.prestigeCancelBtn.addEventListener('click', () => els.prestigeModal.classList.remove('open'));
@@ -7503,6 +7513,7 @@
 
       document.querySelectorAll('.modal').forEach((modal) => {
         modal.addEventListener('click', (event) => {
+          if (modal.id === 'storyModal' && state.preventEventModalBackdropClose) return;
           if (event.target === modal) modal.classList.remove('open');
         });
         const obs = new MutationObserver(() => {
@@ -7539,6 +7550,23 @@
       saveGame();
     }
 
+    function toggleEventModalLock() {
+      state.preventEventModalBackdropClose = !state.preventEventModalBackdropClose;
+      applyEventModalLock();
+      showToast(state.preventEventModalBackdropClose ? '📌 이벤트 팝업 고정 켜짐' : '📌 이벤트 팝업 고정 꺼짐', 'violet');
+      saveGame();
+    }
+
+    function applyEventModalLock() {
+      if (!els.eventLockBtn) return;
+      const enabled = !!state.preventEventModalBackdropClose;
+      els.eventLockBtn.classList.toggle('toggle-on', enabled);
+      els.eventLockBtn.setAttribute('aria-pressed', String(enabled));
+      els.eventLockBtn.setAttribute('aria-label', enabled ? '이벤트 팝업 바깥 클릭 닫기 방지 켜짐' : '이벤트 팝업 바깥 클릭 닫기 방지 꺼짐');
+      els.eventLockBtn.title = enabled ? '이벤트 팝업 고정 켜짐' : '이벤트 팝업 고정 꺼짐';
+      els.eventLockBtn.textContent = enabled ? '📍' : '📌';
+    }
+
     function applyTheme() {
       document.documentElement.setAttribute('data-theme', state.theme);
       els.themeBtn.textContent = state.theme === 'dark' ? '🌙' : '☀️';
@@ -7546,7 +7574,7 @@
 
     function cacheElements() {
       const ids = [
-        'saveStatus', 'saveBtn', 'resetBtn', 'themeBtn', 'characterBtn', 'characterSvg', 'stageEl', 'stageTag', 'stageDecor',
+        'saveStatus', 'saveBtn', 'resetBtn', 'themeBtn', 'eventLockBtn', 'characterBtn', 'characterSvg', 'stageEl', 'stageTag', 'stageDecor',
         'comboBadge', 'levelUpBurst', 'levelUpText', 'levelUpRing', 'stageName', 'levelText', 'expFill', 'expText',
         'coinPill', 'gemPill', 'famePill', 'critPill', 'spPill', 'growthLedger', 'titleLabel', 'titleTag', 'prestigeTag', 'prestigeCount',
         'tabNav', 'impactPanel', 'impactTitle', 'impactHint', 'impactGrid', 'statsGrid', 'actions', 'shopList', 'shopFilter', 'raidList', 'raidDot',
@@ -8027,6 +8055,7 @@
       ensureActionBalanceState();
       ensureBuffState();
       applyTheme();
+      applyEventModalLock();
       bindEvents();
       switchTab(state.currentTab || 'actions');
       updateActiveTitle();
