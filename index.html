@@ -6347,11 +6347,14 @@
         state.leaderboardBestScore = bestScore;
         state.leaderboardLoggedIn = true;
         const keptText = currentScore < bestScore ? ' 현재 점수는 낮지만 최고점은 유지됩니다.' : '';
-        state.leaderboardStatus = (wasLoggedIn ? '랭킹 갱신 완료! 최고점 ' : '랭킹 로그인 완료! 최고점 ') + formatNumber(bestScore) + '점.' + keptText;
+        const successStatus = (wasLoggedIn ? '랭킹 갱신 완료! 최고점 ' : '랭킹 로그인 완료! 최고점 ') + formatNumber(bestScore) + '점.' + keptText;
+        state.leaderboardStatus = successStatus;
         addLog('🏆 온라인 랭킹 ' + (wasLoggedIn ? '갱신' : '로그인') + ' 완료: ' + nickname + ' · 최고점 ' + formatNumber(bestScore) + '점', 'success');
         showToast(wasLoggedIn ? '🏆 랭킹 갱신 완료' : '🏆 랭킹 로그인 완료', 'gold');
         saveGame();
         await fetchLeaderboard();
+        state.leaderboardStatus = successStatus;
+        saveGame();
       } catch (error) {
         state.leaderboardStatus = '랭킹 서버 연결 실패. players 테이블/권한 설정을 확인해주세요.';
         showToast(wasLoggedIn ? '랭킹 갱신 실패' : '랭킹 로그인 실패', 'danger');
