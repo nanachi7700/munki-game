@@ -3127,6 +3127,7 @@
                 <input class="leaderboard-input" id="leaderboardName" type="text" maxlength="16" autocomplete="nickname" placeholder="닉네임 1~16자">
                 <button class="small-btn gold" type="button" id="leaderboardSubmitBtn">랭킹 로그인</button>
                 <button class="small-btn" type="button" id="leaderboardRefreshBtn">새로고침</button>
+                <button class="small-btn" type="button" id="leaderboardAutoSyncBtn" aria-pressed="true">자동 갱신 ON</button>
               </div>
               <div class="leaderboard-status" id="leaderboardStatus">랭킹을 불러올 준비가 됐습니다.</div>
             </div>
@@ -3261,6 +3262,8 @@
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_dWmTt6pVnHSI9H9ZK0Dn1A_szlwGCWn';
     const LEADERBOARD_TABLE = 'munju_leaderboard_players';
     const LEADERBOARD_SUBMIT_COOLDOWN_MS = 30000;
+    const LEADERBOARD_AUTO_SYNC_MS = 60000;
+    const LEADERBOARD_AUTO_SYNC_HIDDEN_MS = 5 * 60 * 1000;
     const LEADERBOARD_LIMIT = 50;
 
     const BALANCE = {
@@ -5260,6 +5263,8 @@
         leaderboardClientId: '',
         lastLeaderboardSubmitAt: 0,
         leaderboardLoggedIn: false,
+        leaderboardAutoSyncEnabled: true,
+        lastLeaderboardAutoSyncAt: 0,
         leaderboardBestScore: 0,
         leaderboardLastSyncAt: 0,
         leaderboardRows: [],
@@ -9028,6 +9033,8 @@
         leaderboardClientId: state.leaderboardClientId || '',
         lastLeaderboardSubmitAt: state.lastLeaderboardSubmitAt || 0,
         leaderboardLoggedIn: !!state.leaderboardLoggedIn,
+        leaderboardAutoSyncEnabled: state.leaderboardAutoSyncEnabled !== false,
+        lastLeaderboardAutoSyncAt: state.lastLeaderboardAutoSyncAt || 0,
         leaderboardBestScore: state.leaderboardBestScore || 0,
         leaderboardLastSyncAt: state.leaderboardLastSyncAt || 0,
         leaderboardRows: Array.isArray(state.leaderboardRows) ? state.leaderboardRows : [],
@@ -10010,6 +10017,8 @@
           leaderboardClientId: saved.leaderboardClientId || '',
           lastLeaderboardSubmitAt: saved.lastLeaderboardSubmitAt || 0,
           leaderboardLoggedIn: !!saved.leaderboardLoggedIn,
+          leaderboardAutoSyncEnabled: saved.leaderboardAutoSyncEnabled !== false,
+          lastLeaderboardAutoSyncAt: saved.lastLeaderboardAutoSyncAt || 0,
           leaderboardBestScore: saved.leaderboardBestScore || 0,
           leaderboardLastSyncAt: saved.leaderboardLastSyncAt || 0,
           leaderboardRows: Array.isArray(saved.leaderboardRows) ? saved.leaderboardRows : [],
@@ -10123,6 +10132,7 @@
       rollSeasonEvent();
       maybeSpawnGoldenEvent();
       maybeRandomEvent();
+      autoSyncLeaderboardIfNeeded();
       if (Date.now() - lastAutoSaveAt >= AUTO_SAVE_MS) {
         saveGame();
         lastAutoSaveAt = Date.now();
@@ -10442,6 +10452,8 @@
       if (typeof state.leaderboardName !== 'string') state.leaderboardName = '';
       if (typeof state.lastLeaderboardSubmitAt !== 'number') state.lastLeaderboardSubmitAt = 0;
       state.leaderboardLoggedIn = !!state.leaderboardLoggedIn;
+      state.leaderboardAutoSyncEnabled = state.leaderboardAutoSyncEnabled !== false;
+      if (typeof state.lastLeaderboardAutoSyncAt !== 'number') state.lastLeaderboardAutoSyncAt = 0;
       if (typeof state.leaderboardBestScore !== 'number') state.leaderboardBestScore = 0;
       if (typeof state.leaderboardLastSyncAt !== 'number') state.leaderboardLastSyncAt = 0;
       if (!state.leaderboardStatus) state.leaderboardStatus = '랭킹을 불러올 준비가 됐습니다.';
@@ -10589,6 +10601,60 @@
         showToast(wasLoggedIn ? '랭킹 갱신 실패' : '랭킹 로그인 실패', 'danger');
       }
       renderLeaderboard();
+    }
+
+    async function autoSyncLeaderboardIfNeeded() {
+      ensureLeaderboardState();
+      if (!state.leaderboardLoggedIn || !state.leaderboardAutoSyncEnabled) return;
+      const nickname = String(state.leaderboardName || '').trim().slice(0, 16);
+      if (!nickname) return;
+
+      const now = Date.now();
+      const interval = document.hidden ? LEADERBOARD_AUTO_SYNC_HIDDEN_MS : LEADERBOARD_AUTO_SYNC_MS;
+      if (now - (state.lastLeaderboardAutoSyncAt || 0) < interval) return;
+      if (now - (state.lastLeaderboardSubmitAt || 0) < LEADERBOARD_SUBMIT_COOLDOWN_MS) return;
+
+      const currentScore = calculateLeaderboardScore();
+      if (currentScore <= (state.leaderboardBestScore || 0)) {
+        state.lastLeaderboardAutoSyncAt = now;
+        return;
+      }
+
+      state.lastLeaderboardAutoSyncAt = now;
+      try {
+        const serverRow = await fetchMyLeaderboardRow();
+        const serverScore = serverRow ? Number(serverRow.score || 0) : 0;
+        const bestScore = Math.max(currentScore, state.leaderboardBestScore || 0, serverScore);
+        if (bestScore <= serverScore && serverScore >= currentScore) {
+          state.leaderboardBestScore = Math.max(state.leaderboardBestScore || 0, serverScore);
+          saveGame();
+          return;
+        }
+        const payload = {
+          ...getLeaderboardPayload(),
+          nickname,
+          score: bestScore,
+          updated_at: new Date().toISOString()
+        };
+        const response = await fetch(SUPABASE_URL + '/rest/v1/' + LEADERBOARD_TABLE + '?on_conflict=client_id', {
+          method: 'POST',
+          headers: getLeaderboardHeaders({ Prefer: 'resolution=merge-duplicates,return=representation' }),
+          body: JSON.stringify([payload])
+        });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const rows = await response.json();
+        applyLeaderboardServerRow(rows && rows[0] ? rows[0] : payload);
+        state.lastLeaderboardSubmitAt = now;
+        state.leaderboardLastSyncAt = now;
+        state.leaderboardBestScore = bestScore;
+        state.leaderboardStatus = '자동 랭킹 갱신 완료! 최고점 ' + formatNumber(bestScore) + '점';
+        addLog('🏆 자동 랭킹 갱신: 최고점 ' + formatNumber(bestScore) + '점', 'success');
+        saveGame();
+        renderLeaderboard();
+      } catch (error) {
+        state.leaderboardStatus = '자동 랭킹 갱신 실패. 다음 주기에 다시 시도합니다.';
+        renderLeaderboard();
+      }
     }
 
     function renderGrowthLedger() {
@@ -11618,9 +11684,16 @@
       els.leaderboardStatus.textContent = state.leaderboardStatus || '랭킹을 불러올 준비가 됐습니다.';
       els.leaderboardSubmitBtn.disabled = cooldown > 0;
       els.leaderboardSubmitBtn.textContent = cooldown > 0 ? '대기 ' + cooldown + '초' : (state.leaderboardLoggedIn ? '랭킹 갱신' : '랭킹 로그인');
+      if (els.leaderboardAutoSyncBtn) {
+        const autoOn = state.leaderboardAutoSyncEnabled !== false;
+        els.leaderboardAutoSyncBtn.textContent = '자동 갱신 ' + (autoOn ? 'ON' : 'OFF');
+        els.leaderboardAutoSyncBtn.classList.toggle('gold', autoOn);
+        els.leaderboardAutoSyncBtn.setAttribute('aria-pressed', String(autoOn));
+      }
       const scoreRows = [
         ['내 점수', formatNumber(score)],
         ['내 최고점', formatNumber(bestScore)],
+        ['자동 갱신', (state.leaderboardLoggedIn ? (state.leaderboardAutoSyncEnabled !== false ? '최고점 상승 시 1분마다' : '꺼짐') : '로그인 후 작동')],
         ['레벨/환생', 'Lv.' + state.level + ' / ' + state.prestige + '회'],
         ['도감/칭호', getClipCount() + '개 / ' + getUnlockedTitleCount() + '개'],
         ['레이드/시설', (state.raidClearCount || 0) + '회 / ' + getBuiltFacilityCount() + '개']
@@ -12253,6 +12326,17 @@
         fetchLeaderboard();
       });
 
+      if (els.leaderboardAutoSyncBtn) {
+        els.leaderboardAutoSyncBtn.addEventListener('click', () => {
+          state.leaderboardAutoSyncEnabled = state.leaderboardAutoSyncEnabled === false;
+          state.leaderboardStatus = state.leaderboardAutoSyncEnabled
+            ? '자동 랭킹 갱신이 켜졌습니다. 최고점이 오르면 1분마다 반영됩니다.'
+            : '자동 랭킹 갱신이 꺼졌습니다.';
+          saveGame();
+          renderLeaderboard();
+        });
+      }
+
       els.clipRewardRow.addEventListener('click', (event) => {
         const rewardBtn = event.target.closest('button[data-clip-reward]');
         if (rewardBtn && !rewardBtn.disabled) {
@@ -12389,6 +12473,7 @@
         'coinPill', 'gemPill', 'famePill', 'critPill', 'spPill', 'growthLedger', 'titleLabel', 'titleTag', 'prestigeTag', 'prestigeCount',
         'tabNav', 'impactPanel', 'impactTitle', 'impactHint', 'impactGrid', 'statsGrid', 'actions', 'shopList', 'shopFilter', 'producerList', 'producerSummary', 'raidList', 'raidDot', 'goldenEventBtn',
         'leaderboardScore', 'leaderboardName', 'leaderboardSubmitBtn', 'leaderboardRefreshBtn', 'leaderboardStatus', 'leaderboardList',
+        'leaderboardAutoSyncBtn',
         'clipProgress', 'clipProgressBar',
         'clipRewardRow', 'clipList', 'clipDot', 'questList', 'questDot',
         'achieveList', 'achieveDot', 'skillList', 'skillIntro', 'friendList', 'facilityList', 'titleList', 'titleBadge', 'streakBadge',
